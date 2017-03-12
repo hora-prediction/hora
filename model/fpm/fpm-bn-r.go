@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/teeratpitakrat/hora/model/adm"
 	"github.com/teeratpitakrat/hora/rbridge"
@@ -17,6 +18,7 @@ type FPMBN struct {
 	admodel      adm.ADM
 	compFailProb map[adm.Component]float64
 	rSession     roger.Session
+	lock         sync.Mutex
 }
 
 func (f *FPMBN) LoadADM(archmodel adm.ADM) {
@@ -36,6 +38,8 @@ func (f *FPMBN) getRSession() (roger.Session, error) {
 }
 
 func (f *FPMBN) Create() error {
+	f.lock.Lock()
+	defer f.lock.Unlock()
 	session, err := f.getRSession()
 	if err != nil {
 		log.Print("Error: ", err)
@@ -143,6 +147,8 @@ func (f *FPMBN) Update(c adm.Component, failProb float64) {
 }
 
 func (f *FPMBN) Predict() (map[adm.Component]float64, error) {
+	f.lock.Lock()
+	defer f.lock.Unlock()
 	session, err := f.getRSession()
 	if err != nil {
 		log.Print("Error: ", err)
