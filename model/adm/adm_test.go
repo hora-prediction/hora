@@ -1,7 +1,6 @@
 package adm
 
 import (
-	"fmt"
 	"testing"
 )
 
