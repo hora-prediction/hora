@@ -1,7 +1,6 @@
 package fpm
 
 import (
-	"log"
 	"testing"
 
 	"github.com/teeratpitakrat/hora/model/adm"
@@ -38,11 +37,115 @@ func TestCreate(t *testing.T) {
 		t.Error("Error creating FPM", err)
 	}
 
-	f.Update(adm.Component{"D", "host4"}, 0.9)
-
 	res, err := f.Predict()
 	if err != nil {
 		t.Error("Error making prediction", err)
 	}
-	log.Print(res)
+	// TODO: more precision checks
+	fprobA := res[adm.Component{"A", "host1"}]
+	if fprobA != 0 {
+		t.Error("Expected: 0 but got", fprobA)
+	}
+	fprobB := res[adm.Component{"B", "host2"}]
+	if fprobB != 0 {
+		t.Error("Expected: 0 but got", fprobB)
+	}
+	fprobC := res[adm.Component{"C", "host3"}]
+	if fprobC != 0 {
+		t.Error("Expected: 0 but got", fprobC)
+	}
+	fprobD := res[adm.Component{"D", "host4"}]
+	if fprobD != 0 {
+		t.Error("Expected: 0 but got", fprobD)
+	}
+
+	f.Update(adm.Component{"D", "host4"}, 0.1)
+	res, err = f.Predict()
+	if err != nil {
+		t.Error("Error making prediction", err)
+	}
+	fprobA = res[adm.Component{"A", "host1"}]
+	if fprobA > 0.12 {
+		t.Error("Expected: 0 but got", fprobA)
+	}
+	fprobB = res[adm.Component{"B", "host2"}]
+	if fprobB > 0.12 {
+		t.Error("Expected: 0 but got", fprobB)
+	}
+	fprobC = res[adm.Component{"C", "host3"}]
+	if fprobC > 0.12 {
+		t.Error("Expected: 0 but got", fprobC)
+	}
+	fprobD = res[adm.Component{"D", "host4"}]
+	if fprobD > 0.12 {
+		t.Error("Expected: 0 but got", fprobD)
+	}
+
+	f.Update(adm.Component{"D", "host4"}, 0.9)
+	res, err = f.Predict()
+	if err != nil {
+		t.Error("Error making prediction", err)
+	}
+	fprobA = res[adm.Component{"A", "host1"}]
+	if fprobA < 0.89 {
+		t.Error("Expected: 0 but got", fprobA)
+	}
+	fprobB = res[adm.Component{"B", "host2"}]
+	if fprobB < 0.89 {
+		t.Error("Expected: 0 but got", fprobB)
+	}
+	fprobC = res[adm.Component{"C", "host3"}]
+	if fprobC < 0.89 {
+		t.Error("Expected: 0 but got", fprobC)
+	}
+	fprobD = res[adm.Component{"D", "host4"}]
+	if fprobD < 0.89 {
+		t.Error("Expected: 0 but got", fprobD)
+	}
+
+	f.Update(adm.Component{"D", "host4"}, 0.0)
+	f.Update(adm.Component{"B", "host2"}, 0.1)
+	res, err = f.Predict()
+	if err != nil {
+		t.Error("Error making prediction", err)
+	}
+	fprobA = res[adm.Component{"A", "host1"}]
+	if fprobA > 0.12 {
+		t.Error("Expected: 0 but got", fprobA)
+	}
+	fprobB = res[adm.Component{"B", "host2"}]
+	if fprobB > 0.12 {
+		t.Error("Expected: 0 but got", fprobB)
+	}
+	fprobC = res[adm.Component{"C", "host3"}]
+	if fprobC != 0 {
+		t.Error("Expected: 0 but got", fprobC)
+	}
+	fprobD = res[adm.Component{"D", "host4"}]
+	if fprobD != 0 {
+		t.Error("Expected: 0 but got", fprobD)
+	}
+
+	f.Update(adm.Component{"B", "host2"}, 0.0)
+	f.Update(adm.Component{"A", "host1"}, 0.1)
+	res, err = f.Predict()
+	if err != nil {
+		t.Error("Error making prediction", err)
+	}
+	fprobA = res[adm.Component{"A", "host1"}]
+	if fprobA > 0.12 {
+		t.Error("Expected: 0 but got", fprobA)
+	}
+	fprobB = res[adm.Component{"B", "host2"}]
+	if fprobB != 0 {
+		t.Error("Expected: 0 but got", fprobB)
+	}
+	fprobC = res[adm.Component{"C", "host3"}]
+	if fprobC != 0 {
+		t.Error("Expected: 0 but got", fprobC)
+	}
+	fprobD = res[adm.Component{"D", "host4"}]
+	if fprobD != 0 {
+		t.Error("Expected: 0 but got", fprobD)
+	}
 }
