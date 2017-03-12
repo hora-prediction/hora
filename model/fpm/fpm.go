@@ -6,6 +6,5 @@ import (
 
 type FPM interface {
 	Create(adm.ADM)
-	Update(adm.ADM)
-	Predict() map[string]float64
+	Predict() map[adm.Component]float64
 }
