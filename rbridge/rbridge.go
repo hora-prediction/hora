@@ -18,9 +18,9 @@ func SetPort(p int64) {
 	port = p
 }
 
-func GetRSession(c string) (roger.Session, error) {
-	session, ok := smap[c]
-	if ok == false {
+func GetRSession(sesName string) (roger.Session, error) {
+	session, ok := smap[sesName]
+	if !ok {
 		client, err := roger.NewRClient(hostname, port)
 		if err != nil {
 			log.Printf("Failed to connect to RServe at %s:%d", hostname, port)
@@ -31,7 +31,7 @@ func GetRSession(c string) (roger.Session, error) {
 			log.Print("Failed to get R session from ", hostname, string(port))
 			return nil, err
 		}
-		smap[c] = session
+		smap[sesName] = session
 		return session, nil
 	}
 	return session, nil
