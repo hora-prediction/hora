@@ -30,7 +30,7 @@ func TestCreate(t *testing.T) {
 	rbridge.SetHostname("localhost")
 	rbridge.SetPort(6311)
 
-	var f FPMBN
+	var f FPMBNR
 	f.LoadADM(archmodel)
 	err := f.Create()
 	if err != nil {

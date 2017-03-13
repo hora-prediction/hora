@@ -14,18 +14,18 @@ import (
 	"github.com/senseyeio/roger"
 )
 
-type FPMBN struct {
+type FPMBNR struct {
 	admodel      adm.ADM
 	compFailProb map[adm.Component]float64
 	rSession     roger.Session
 	lock         sync.Mutex
 }
 
-func (f *FPMBN) LoadADM(archmodel adm.ADM) {
+func (f *FPMBNR) LoadADM(archmodel adm.ADM) {
 	f.admodel = archmodel
 }
 
-func (f *FPMBN) getRSession() (roger.Session, error) {
+func (f *FPMBNR) getRSession() (roger.Session, error) {
 	if f.rSession == nil {
 		rSession, err := rbridge.GetRSession("fpm" + strconv.FormatInt(rand.Int63(), 10))
 		if err != nil {
@@ -37,7 +37,7 @@ func (f *FPMBN) getRSession() (roger.Session, error) {
 	return f.rSession, nil
 }
 
-func (f *FPMBN) Create() error {
+func (f *FPMBNR) Create() error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	session, err := f.getRSession()
@@ -138,7 +138,7 @@ func (f *FPMBN) Create() error {
 	return nil
 }
 
-func (f *FPMBN) Update(c adm.Component, failProb float64) {
+func (f *FPMBNR) Update(c adm.Component, failProb float64) {
 	if f.compFailProb == nil {
 		f.compFailProb = make(map[adm.Component]float64)
 	}
@@ -146,7 +146,7 @@ func (f *FPMBN) Update(c adm.Component, failProb float64) {
 	f.Create()
 }
 
-func (f *FPMBN) Predict() (map[adm.Component]float64, error) {
+func (f *FPMBNR) Predict() (map[adm.Component]float64, error) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	session, err := f.getRSession()
