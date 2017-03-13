@@ -11,6 +11,7 @@ var testdat = []float64{60, 43, 67, 50, 56, 42, 50, 65, 68, 43, 65, 34, 47, 34, 
 
 func TestInsert(t *testing.T) {
 	c := adm.Component{"A", "host1"}
+	buflen = 20
 	a, err := New(c)
 	if err != nil {
 		t.Error("Error getting new ARIMAR", err)
@@ -31,6 +32,7 @@ func TestInsert(t *testing.T) {
 
 func TestPredict(t *testing.T) {
 	c := adm.Component{"A", "host1"}
+	buflen = 20
 	a, err := New(c)
 	if err != nil {
 		t.Error("Error getting new ARIMAR", err)
