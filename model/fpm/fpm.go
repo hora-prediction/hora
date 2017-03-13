@@ -5,6 +5,8 @@ import (
 )
 
 type FPM interface {
-	Create(adm.ADM)
-	Predict() map[adm.Component]float64
+	LoadADM(adm.ADM)
+	Create() error
+	Update(adm.Component, float64)
+	Predict() (map[adm.Component]float64, error)
 }
