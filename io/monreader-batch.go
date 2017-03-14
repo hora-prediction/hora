@@ -10,24 +10,24 @@ import (
 	"github.com/teeratpitakrat/hora/model/adm"
 )
 
-func Read(m adm.ADM) (MonData, error) {
+func Read(m adm.ADM, ch chan MonDataPoint) {
 	var monData MonData
 	monData = make([]MonDataPoint, 0, 0)
 
 	influxClnt, err := influxdb.NewClient("http://localhost:8086", "root", "root")
 	if err != nil {
 		log.Fatal("Cannot get new influxdb client", err)
-		return monData, err
+		return
 	}
 
 	for c, _ := range m {
 		// TODO: get first timestamp in db for this component
 		// and read until the end
-		cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' and time >= 2487341677665666724 group by time(1m)"
+		cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' and time >= 1487341677665666724 group by time(1m)"
 		res, err := influxdb.Query(*influxClnt, cmd, "kieker")
 		if err != nil {
 			log.Fatal("Cannot query data", err)
-			return monData, err
+			return
 		}
 
 		// Parse result
@@ -48,5 +48,9 @@ func Read(m adm.ADM) (MonData, error) {
 	}
 	// sort all data points by time
 	sort.Sort(monData)
-	return monData, nil
+	for _, d := range monData {
+		ch <- d
+	}
+	close(ch)
+	return
 }

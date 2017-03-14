@@ -27,7 +27,15 @@ func TestReadBatch(t *testing.T) {
 
 	m[compGet] = compGetDepList
 	m[compFetch] = compFetchDepList
-	monData, _ := Read(m)
-	log.Print(monData)
-	log.Print(len(monData))
+
+	monDatCh := make(chan MonDataPoint)
+	go Read(m, monDatCh)
+	for {
+		d, ok := <-monDatCh
+		if ok {
+			log.Print(d)
+		} else {
+			break
+		}
+	}
 }
