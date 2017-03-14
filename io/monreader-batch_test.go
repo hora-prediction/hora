@@ -8,6 +8,7 @@ import (
 )
 
 func TestReadBatch(t *testing.T) {
+	//TODO: rewrite
 	m := make(adm.ADM)
 
 	compFetch := adm.Component{
@@ -29,7 +30,7 @@ func TestReadBatch(t *testing.T) {
 	m[compFetch] = compFetchDepList
 
 	monDatCh := make(chan MonDataPoint)
-	go Read(m, monDatCh)
+	go ReadMonData(m, monDatCh)
 	for {
 		d, ok := <-monDatCh
 		if ok {
