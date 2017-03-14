@@ -30,7 +30,7 @@ func Read(m adm.ADM, ch chan MonDataPoint) {
 			return
 		}
 
-		// Parse result
+		// Parse time and response time
 		for _, row := range res[0].Series[0].Values {
 			t, err := time.Parse(time.RFC3339, row[0].(string))
 			if err != nil {
