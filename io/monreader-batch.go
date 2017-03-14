@@ -10,7 +10,7 @@ import (
 	"github.com/teeratpitakrat/hora/model/adm"
 )
 
-func ReadMonData(m adm.ADM, ch chan MonDataPoint) {
+func ReadMonDat(m adm.ADM, ch chan MonDataPoint) {
 	var monData MonData
 	monData = make([]MonDataPoint, 0, 0)
 

@@ -30,7 +30,7 @@ func TestReadBatch(t *testing.T) {
 	m[compFetch] = compFetchDepList
 
 	monDatCh := make(chan MonDataPoint)
-	go ReadMonData(m, monDatCh)
+	go ReadMonDat(m, monDatCh)
 	for {
 		d, ok := <-monDatCh
 		if ok {
