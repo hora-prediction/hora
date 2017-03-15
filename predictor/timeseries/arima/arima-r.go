@@ -29,7 +29,7 @@ func New(c adm.Component) (*ARIMAR, error) {
 	var a ARIMAR
 	a.component = c
 	a.buf = ring.New(buflen)
-	session, err := rbridge.GetRSession(a.component.GetName())
+	session, err := rbridge.GetRSession(a.component.UniqName())
 	if err != nil {
 		log.Print("Error creating new ARIMAR predictor: ", err)
 		return nil, err

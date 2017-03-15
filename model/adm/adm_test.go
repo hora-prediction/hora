@@ -7,52 +7,61 @@ import (
 func TestADMSmall(t *testing.T) {
 	m := make(ADM)
 
-	depA := DepList{make([]Dep, 2, 2)}
-	depA.Deps[0] = Dep{Component{"B", "host2"}, 0.5}
-	depA.Deps[1] = Dep{Component{"C", "host3"}, 0.5}
-	m[Component{"A", "host1"}] = depA
+	compA := Component{"A", "host1"}
+	compB := Component{"B", "host2"}
+	compC := Component{"C", "host3"}
+	compD := Component{"D", "host4"}
 
-	depB := DepList{make([]Dep, 1, 1)}
-	depB.Deps[0] = Dep{Component{"D", "host4"}, 1}
-	m[Component{"B", "host2"}] = depB
+	depA := DepList{compA, make([]Dep, 2, 2)}
+	depA.Component = compA
+	depA.Deps[0] = Dep{compB, 0.5}
+	depA.Deps[1] = Dep{compC, 0.5}
+	m[compA.UniqName()] = depA
 
-	depC := DepList{make([]Dep, 1, 1)}
-	depC.Deps[0] = Dep{Component{"D", "host4"}, 1}
-	m[Component{"C", "host3"}] = depC
+	depB := DepList{compB, make([]Dep, 1, 1)}
+	depB.Component = compB
+	depB.Deps[0] = Dep{compD, 1}
+	m[compB.UniqName()] = depB
+
+	depC := DepList{compC, make([]Dep, 1, 1)}
+	depC.Component = compC
+	depC.Deps[0] = Dep{compD, 1}
+	m[compC.UniqName()] = depC
 
 	depD := DepList{}
-	m[Component{"D", "host4"}] = depD
+	depD.Component = compD
+	m[compD.UniqName()] = depD
 
 	for c, v := range m {
 		switch c {
-		case Component{"A", "host1"}:
+		case compA.UniqName():
 			expected := 2
 			if len(v.Deps) != expected {
 				t.Error("Expected: ", expected, " but got ", len(v.Deps))
 			}
-			if v.Deps[0].Component.GetName() != "host2_B" || v.Deps[0].Weight != 0.5 {
+			if v.Deps[0].Component.UniqName() != "host2_B" || v.Deps[0].Weight != 0.5 {
 				t.Error("Wrong value")
 			}
-			if v.Deps[1].Component.GetName() != "host3_C" || v.Deps[1].Weight != 0.5 {
+			if v.Deps[1].Component.UniqName() != "host3_C" || v.Deps[1].Weight != 0.5 {
 				t.Error("Wrong value")
 			}
-		case Component{"B", "host2"}:
+		case compB.UniqName():
 			expected := 1
 			if len(v.Deps) != expected {
 				t.Error("Expected: ", expected, " but got ", len(v.Deps))
 			}
-			if v.Deps[0].Component.GetName() != "host4_D" || v.Deps[0].Weight != 1 {
+			if v.Deps[0].Component.UniqName() != "host4_D" || v.Deps[0].Weight != 1 {
 				t.Error("Wrong value")
 			}
-		case Component{"C", "host3"}:
+		case compC.UniqName():
 			expected := 1
 			if len(v.Deps) != expected {
 				t.Error("Expected: ", expected, " but got ", len(v.Deps))
 			}
-			if v.Deps[0].Component.GetName() != "host4_D" || v.Deps[0].Weight != 1 {
+			if v.Deps[0].Component.UniqName() != "host4_D" || v.Deps[0].Weight != 1 {
 				t.Error("Wrong value")
 			}
-		case Component{"D", "host4"}:
+		case compD.UniqName():
 			expected := 0
 			if len(v.Deps) != expected {
 				t.Error("Expected: ", expected, " but got ", len(v.Deps))
