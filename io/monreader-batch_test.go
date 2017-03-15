@@ -30,7 +30,16 @@ func TestReadBatch(t *testing.T) {
 	m[compFetch] = compFetchDepList
 
 	monDatCh := make(chan MonDataPoint)
-	go ReadMonDat(m, monDatCh)
+	reader := &InfluxMonDatReader{
+		archdepmod: m,
+		addr:       "http://localhost:8086",
+		username:   "root",
+		password:   "root",
+		db:         "kieker",
+		batch:      true,
+		ch:         monDatCh,
+	}
+	go reader.Read()
 	for {
 		d, ok := <-monDatCh
 		if ok {

@@ -6,29 +6,58 @@ import (
 	"sort"
 	"time"
 
-	"github.com/teeratpitakrat/hora/influxdb"
 	"github.com/teeratpitakrat/hora/model/adm"
+
+	"github.com/influxdata/influxdb/client/v2"
 )
 
-func ReadMonDat(m adm.ADM, ch chan MonDataPoint) {
-	var monData MonData
-	monData = make([]MonDataPoint, 0, 0)
+type InfluxMonDatReader struct {
+	archdepmod adm.ADM
+	addr       string
+	username   string
+	password   string
+	db         string
+	batch      bool
+	starttime  time.Time
+	endtime    time.Time
+	ch         chan MonDataPoint
+}
 
-	influxClnt, err := influxdb.NewClient("http://localhost:8086", "root", "root")
+func (r *InfluxMonDatReader) Read() {
+	var monData MonData
+
+	// map to store last timestamp of each component
+
+	clnt, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr:     r.addr,
+		Username: r.username,
+		Password: r.password,
+	})
 	if err != nil {
-		log.Fatal("Cannot get new influxdb client", err)
+		log.Fatal("Error: cannot create new influxdb client", err)
 		return
 	}
 
-	for c, _ := range m {
-		// TODO: get first timestamp in db for this component
+	for c, _ := range r.archdepmod {
+		// TODO: for batch mode, get first timestamp in db for this component
 		// and read until the end
 		cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' and time >= 1487341677665666724 group by time(1m)"
-		res, err := influxdb.Query(*influxClnt, cmd, "kieker")
-		if err != nil {
-			log.Fatal("Cannot query data", err)
-			return
+		q := client.Query{
+			Command:  cmd,
+			Database: r.db,
 		}
+		response, err := clnt.Query(q)
+		if err != nil {
+			log.Fatal("Error: cannot query data with cmd=", cmd, err)
+			continue
+		}
+		if response.Error() != nil {
+			log.Fatal("Error: bad response with cmd=", cmd, response.Error())
+			continue
+		}
+		res := response.Results
+
+		// TODO: check if res is nil
 
 		// Parse time and response time
 		for _, row := range res[0].Series[0].Values {
@@ -49,8 +78,8 @@ func ReadMonDat(m adm.ADM, ch chan MonDataPoint) {
 	// sort all data points by time
 	sort.Sort(monData)
 	for _, d := range monData {
-		ch <- d
+		r.ch <- d
 	}
-	close(ch)
+	close(r.ch)
 	return
 }
