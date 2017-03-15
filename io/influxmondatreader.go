@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"sort"
+	"strconv"
 	"time"
 
 	"github.com/teeratpitakrat/hora/model/adm"
@@ -21,13 +22,11 @@ type InfluxMonDatReader struct {
 	starttime  time.Time
 	endtime    time.Time
 	ch         chan MonDatPoint
+	// aggregation type for each component type
+	// time resolution
 }
 
 func (r *InfluxMonDatReader) Read() {
-	var monDat MonDat
-
-	// map to store last timestamp of each component
-
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     r.addr,
 		Username: r.username,
@@ -37,42 +36,70 @@ func (r *InfluxMonDatReader) Read() {
 		log.Fatal("Error: cannot create new influxdb client", err)
 		return
 	}
+	if r.batch {
+		r.readBatch(clnt)
+	} else {
+		r.readRealtime(clnt)
+	}
+}
 
+func (r *InfluxMonDatReader) readBatch(clnt client.Client) {
+	var monDat MonDat
 	for c, _ := range r.archdepmod {
-		// TODO: for batch mode, get first timestamp in db for this component
-		// and read until the end
+		// Get first and last timestamp of this component in influxdb
+		var curtimestamp, firsttimestamp, lasttimestamp time.Time
+		firsttimestamp, lasttimestamp = r.getFirstAndLastTimestamp(clnt, c)
+		// Get the larger starttime
+		if r.starttime.After(firsttimestamp) {
+			curtimestamp = r.starttime.Add(-time.Nanosecond)
+		} else {
+			curtimestamp = firsttimestamp.Add(-time.Nanosecond)
+		}
 		// TODO: query for different types of components
-		cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' and time >= 1487341677665666724 group by time(1m)"
-		q := client.Query{
-			Command:  cmd,
-			Database: r.db,
-		}
-		response, err := clnt.Query(q)
-		if err != nil {
-			log.Fatal("Error: cannot query data with cmd=", cmd, err)
-			continue
-		}
-		if response.Error() != nil {
-			log.Fatal("Error: bad response with cmd=", cmd, response.Error())
-			continue
-		}
-		res := response.Results
 
-		// TODO: check if res is nil
-
-		// Parse time and response time
-		for _, row := range res[0].Series[0].Values {
-			t, err := time.Parse(time.RFC3339, row[0].(string))
-			if err != nil {
-				log.Fatal(err)
+	LoopChunk: // Loop to get all data because InfluxDB return max. 10000 records by default
+		for {
+			cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " group by time(1m)"
+			q := client.Query{
+				Command:  cmd,
+				Database: r.db,
 			}
-			if row[1] != nil {
-				val, _ := row[1].(json.Number).Float64()
-				point := MonDatPoint{c, t, val}
-				monDat = append(monDat, point)
-			} else {
-				point := MonDatPoint{c, t, 0}
-				monDat = append(monDat, point)
+			response, err := clnt.Query(q)
+			if err != nil {
+				log.Fatal("Error: cannot query data with cmd=", cmd, err)
+				break
+			}
+			if response.Error() != nil {
+				log.Fatal("Error: bad response with cmd=", cmd, response.Error())
+				break
+			}
+			res := response.Results
+
+			if len(res[0].Series) == 0 {
+				break // break if no more data is returned
+			}
+			// Parse time and response time
+			for _, row := range res[0].Series[0].Values {
+				t, err := time.Parse(time.RFC3339, row[0].(string))
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				if t.After(lasttimestamp) || (!r.endtime.IsZero() && t.After(r.endtime)) {
+					break LoopChunk // break chunk loop if timestamp of current query result exceeds the lasttimestamp the defined endtime
+				}
+				if row[1] != nil {
+					val, _ := row[1].(json.Number).Float64()
+					point := MonDatPoint{c, t, val}
+					monDat = append(monDat, point)
+				} else {
+					point := MonDatPoint{c, t, 0}
+					monDat = append(monDat, point)
+				}
+				curtimestamp = t
+				// TODO: move time forward at least on step
+				// there is a bug when start and end time are very close to each other
+				// (less than time resolution)
 			}
 		}
 	}
@@ -83,4 +110,46 @@ func (r *InfluxMonDatReader) Read() {
 	}
 	close(r.ch)
 	return
+}
+
+func (r *InfluxMonDatReader) readRealtime(clnt client.Client) {
+}
+
+func (r *InfluxMonDatReader) getFirstAndLastTimestamp(clnt client.Client, c adm.Component) (time.Time, time.Time) {
+	var firsttimestamp, lasttimestamp time.Time
+	cmd := "select * from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' order by time limit 1"
+	q := client.Query{
+		Command:  cmd,
+		Database: r.db,
+	}
+	response, err := clnt.Query(q)
+	if err != nil {
+		log.Fatal("Error: cannot query data with cmd=", cmd, err)
+		return time.Unix(0, 0), time.Unix(0, 0) // TODO: get last timestamp
+	}
+	if response.Error() != nil {
+		log.Fatal("Error: bad response with cmd=", cmd, response.Error())
+		return time.Unix(0, 0), time.Unix(0, 0)
+	}
+	res := response.Results
+	firsttimestamp, err = time.Parse(time.RFC3339, res[0].Series[0].Values[0][0].(string))
+
+	cmd = "select * from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' order by time desc limit 1"
+	q = client.Query{
+		Command:  cmd,
+		Database: r.db,
+	}
+	response, err = clnt.Query(q)
+	if err != nil {
+		log.Fatal("Error: cannot query data with cmd=", cmd, err)
+		return time.Unix(0, 0), time.Unix(0, 0)
+	}
+	if response.Error() != nil {
+		log.Fatal("Error: bad response with cmd=", cmd, response.Error())
+		return time.Unix(0, 0), time.Unix(0, 0)
+	}
+	res = response.Results
+	lasttimestamp, err = time.Parse(time.RFC3339, res[0].Series[0].Values[0][0].(string))
+
+	return firsttimestamp, lasttimestamp
 }
