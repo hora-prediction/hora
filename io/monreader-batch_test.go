@@ -29,7 +29,7 @@ func TestReadBatch(t *testing.T) {
 	m[compGet] = compGetDepList
 	m[compFetch] = compFetchDepList
 
-	monDatCh := make(chan MonDataPoint)
+	monDatCh := make(chan MonDatPoint)
 	reader := &InfluxMonDatReader{
 		archdepmod: m,
 		addr:       "http://localhost:8086",

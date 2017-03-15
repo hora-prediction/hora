@@ -6,22 +6,22 @@ import (
 	"github.com/teeratpitakrat/hora/model/adm"
 )
 
-type MonDataPoint struct {
+type MonDatPoint struct {
 	Component adm.Component
 	Timestamp time.Time
 	Value     float64
 }
 
-type MonData []MonDataPoint
+type MonDat []MonDatPoint
 
-func (mondat MonData) Len() int {
+func (mondat MonDat) Len() int {
 	return len(mondat)
 }
 
-func (mondat MonData) Less(i, j int) bool {
+func (mondat MonDat) Less(i, j int) bool {
 	return mondat[i].Timestamp.Before(mondat[j].Timestamp)
 }
 
-func (mondat MonData) Swap(i, j int) {
+func (mondat MonDat) Swap(i, j int) {
 	mondat[i], mondat[j] = mondat[j], mondat[i]
 }

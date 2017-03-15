@@ -20,11 +20,11 @@ type InfluxMonDatReader struct {
 	batch      bool
 	starttime  time.Time
 	endtime    time.Time
-	ch         chan MonDataPoint
+	ch         chan MonDatPoint
 }
 
 func (r *InfluxMonDatReader) Read() {
-	var monData MonData
+	var monDat MonDat
 
 	// map to store last timestamp of each component
 
@@ -41,6 +41,7 @@ func (r *InfluxMonDatReader) Read() {
 	for c, _ := range r.archdepmod {
 		// TODO: for batch mode, get first timestamp in db for this component
 		// and read until the end
+		// TODO: query for different types of components
 		cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' and time >= 1487341677665666724 group by time(1m)"
 		q := client.Query{
 			Command:  cmd,
@@ -67,17 +68,17 @@ func (r *InfluxMonDatReader) Read() {
 			}
 			if row[1] != nil {
 				val, _ := row[1].(json.Number).Float64()
-				point := MonDataPoint{c, t, val}
-				monData = append(monData, point)
+				point := MonDatPoint{c, t, val}
+				monDat = append(monDat, point)
 			} else {
-				point := MonDataPoint{c, t, 0}
-				monData = append(monData, point)
+				point := MonDatPoint{c, t, 0}
+				monDat = append(monDat, point)
 			}
 		}
 	}
 	// sort all data points by time
-	sort.Sort(monData)
-	for _, d := range monData {
+	sort.Sort(monDat)
+	for _, d := range monDat {
 		r.ch <- d
 	}
 	close(r.ch)
