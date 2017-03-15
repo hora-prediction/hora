@@ -59,7 +59,7 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client) {
 
 	LoopChunk: // Loop to get all data because InfluxDB return max. 10000 records by default
 		for {
-			cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " group by time(1m)"
+			cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
 			q := client.Query{
 				Command:  cmd,
 				Database: r.db,
@@ -86,7 +86,7 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client) {
 				}
 
 				if t.After(lasttimestamp) || (!r.endtime.IsZero() && t.After(r.endtime)) {
-					break LoopChunk // break chunk loop if timestamp of current query result exceeds the lasttimestamp the defined endtime
+					break LoopChunk // break chunk loop if timestamp of current query result exceeds the lasttimestamp or the defined endtime
 				}
 				if row[1] != nil {
 					val, _ := row[1].(json.Number).Float64()
@@ -96,10 +96,12 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client) {
 					point := MonDatPoint{c, t, 0}
 					monDat = append(monDat, point)
 				}
-				curtimestamp = t
-				// TODO: move time forward at least on step
-				// there is a bug when start and end time are very close to each other
-				// (less than time resolution)
+				// preventing querying the same record forever
+				if t.Sub(curtimestamp) < time.Minute {
+					curtimestamp = curtimestamp.Add(time.Minute)
+				} else {
+					curtimestamp = t
+				}
 			}
 		}
 	}

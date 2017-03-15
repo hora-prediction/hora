@@ -3,7 +3,7 @@ package io
 import (
 	"log"
 	"testing"
-	//"time"
+	"time"
 
 	"github.com/teeratpitakrat/hora/model/adm"
 )
@@ -39,8 +39,8 @@ func TestReadBatch(t *testing.T) {
 		db:         "kieker",
 		batch:      true,
 		ch:         monDatCh,
-		//starttime:  time.Unix(1487341800, 0),
-		//endtime:    time.Unix(1487341860, 0),
+		starttime:  time.Unix(1487341740, 0),
+		endtime:    time.Unix(1487341740, 0),
 	}
 	go reader.Read()
 	for {
