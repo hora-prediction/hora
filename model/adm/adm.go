@@ -4,14 +4,14 @@ import (
 	"strings"
 )
 
-type ADM map[Component]DepList
+type ADM map[string]DepList
 
 type Component struct {
-	Name     string
-	Hostname string
+	Name     string `json:"name`
+	Hostname string `json:hostname`
 }
 
-func (c *Component) GetName() string {
+func (c *Component) UniqName() string {
 	name := c.Hostname + "_" + c.Name
 	name = strings.Replace(name, ".", "_", -1)
 	name = strings.Replace(name, ";", "_", -1)
@@ -20,23 +20,12 @@ func (c *Component) GetName() string {
 	return name
 }
 
-type RspTime struct {
-	Component
-}
-
-type LoadAvg struct {
-	Component
-}
-
-type MemUsage struct {
-	Component
-}
-
 type Dep struct {
 	Component Component `json:"component"`
 	Weight    float64   `json:"weight"`
 }
 
 type DepList struct {
-	Deps []Dep `json:"dependencies"`
+	Component Component `json:"component"`
+	Deps      []Dep     `json:"dependencies"`
 }

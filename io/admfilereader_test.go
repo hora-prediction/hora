@@ -3,13 +3,16 @@ package io
 import (
 	"log"
 	"testing"
-	"time"
 
 	"github.com/teeratpitakrat/hora/model/adm"
 )
 
-func TestReadBatch(t *testing.T) {
-	//TODO: rewrite
+func TestImport(t *testing.T) {
+	m, _ := Import("/tmp/m.json")
+	log.Print(m)
+}
+
+func TestExport(t *testing.T) {
 	m := make(adm.ADM)
 
 	compFetch := adm.Component{
@@ -32,25 +35,5 @@ func TestReadBatch(t *testing.T) {
 	m[compGet.UniqName()] = compGetDepList
 	m[compFetch.UniqName()] = compFetchDepList
 
-	monDatCh := make(chan MonDatPoint)
-	reader := &InfluxMonDatReader{
-		archdepmod: m,
-		addr:       "http://localhost:8086",
-		username:   "root",
-		password:   "root",
-		db:         "kieker",
-		batch:      true,
-		ch:         monDatCh,
-		starttime:  time.Unix(1487341740, 0),
-		endtime:    time.Unix(1487341740, 0),
-	}
-	go reader.Read()
-	for {
-		d, ok := <-monDatCh
-		if ok {
-			log.Print(d)
-		} else {
-			break
-		}
-	}
+	Export(m, "/tmp/m.json")
 }
