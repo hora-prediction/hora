@@ -119,7 +119,7 @@ func (r *InfluxMonDatReader) readRealtime(clnt client.Client) {
 
 func (r *InfluxMonDatReader) getFirstAndLastTimestamp(clnt client.Client, c adm.Component) (time.Time, time.Time) {
 	var firsttimestamp, lasttimestamp time.Time
-	cmd := "select * from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' order by time limit 1"
+	cmd := "select first(response_time) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "'"
 	q := client.Query{
 		Command:  cmd,
 		Database: r.db,
@@ -136,7 +136,7 @@ func (r *InfluxMonDatReader) getFirstAndLastTimestamp(clnt client.Client, c adm.
 	res := response.Results
 	firsttimestamp, err = time.Parse(time.RFC3339, res[0].Series[0].Values[0][0].(string))
 
-	cmd = "select * from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "' order by time desc limit 1"
+	cmd = "select last(response_time) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "'"
 	q = client.Query{
 		Command:  cmd,
 		Database: r.db,
