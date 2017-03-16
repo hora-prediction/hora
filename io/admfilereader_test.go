@@ -8,7 +8,10 @@ import (
 )
 
 func TestImport(t *testing.T) {
-	m, _ := Import("/tmp/m.json")
+	m, err := Import("/tmp/adm.json")
+	if err != nil {
+		t.Error(err)
+	}
 	log.Print(m)
 }
 

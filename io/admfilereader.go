@@ -20,11 +20,15 @@ func Import(path string) (adm.ADM, error) {
 	return m, nil
 }
 
-func Export(m adm.ADM, path string) {
+func Export(m adm.ADM, path string) error {
 	b, err := json.Marshal(m)
 	if err != nil {
 		log.Println(err)
 	}
 
-	ioutil.WriteFile(path, b, 0644)
+	err = ioutil.WriteFile(path, b, 0644)
+	if err != nil {
+		log.Println(err)
+	}
+	return nil
 }

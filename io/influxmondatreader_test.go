@@ -32,12 +32,12 @@ func TestReadBatch(t *testing.T) {
 	m[compFetch.UniqName()] = compFetchDepList
 
 	reader := &InfluxMonDatReader{
-		archdepmod: m,
-		addr:       "http://localhost:8086",
-		username:   "root",
-		password:   "root",
-		db:         "kieker",
-		batch:      true,
+		Archdepmod: m,
+		Addr:       "http://localhost:8086",
+		Username:   "root",
+		Password:   "root",
+		Db:         "kieker",
+		Batch:      true,
 	}
 	ch := reader.Read()
 	for {

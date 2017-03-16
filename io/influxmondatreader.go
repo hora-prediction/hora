@@ -13,15 +13,14 @@ import (
 )
 
 type InfluxMonDatReader struct {
-	archdepmod adm.ADM
-	addr       string
-	username   string
-	password   string
-	db         string
-	batch      bool
-	starttime  time.Time
-	endtime    time.Time
-	ch         chan MonDatPoint
+	Archdepmod adm.ADM
+	Addr       string
+	Username   string
+	Password   string
+	Db         string
+	Batch      bool
+	Starttime  time.Time
+	Endtime    time.Time
 	// aggregation type for each component type
 	// time resolution
 }
@@ -29,16 +28,16 @@ type InfluxMonDatReader struct {
 func (r *InfluxMonDatReader) Read() <-chan MonDatPoint {
 	ch := make(chan MonDatPoint)
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:     r.addr,
-		Username: r.username,
-		Password: r.password,
+		Addr:     r.Addr,
+		Username: r.Username,
+		Password: r.Password,
 	})
 	if err != nil {
 		log.Fatal("Error: cannot create new influxdb client", err)
 		close(ch)
 		return ch
 	}
-	if r.batch {
+	if r.Batch {
 		go r.readBatch(clnt, ch)
 	} else {
 		go r.readRealtime(clnt, ch)
@@ -48,13 +47,13 @@ func (r *InfluxMonDatReader) Read() <-chan MonDatPoint {
 
 func (r *InfluxMonDatReader) readBatch(clnt client.Client, ch chan MonDatPoint) {
 	var monDat MonDat
-	for _, d := range r.archdepmod {
+	for _, d := range r.Archdepmod {
 		// Get first and last timestamp of this component in influxdb
 		var curtimestamp, firsttimestamp, lasttimestamp time.Time
 		firsttimestamp, lasttimestamp = r.getFirstAndLastTimestamp(clnt, d.Component)
 		// Get the larger starttime
-		if r.starttime.After(firsttimestamp) {
-			curtimestamp = r.starttime.Add(-time.Nanosecond)
+		if r.Starttime.After(firsttimestamp) {
+			curtimestamp = r.Starttime.Add(-time.Nanosecond)
 		} else {
 			curtimestamp = firsttimestamp.Add(-time.Nanosecond)
 		}
@@ -66,7 +65,7 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client, ch chan MonDatPoint) 
 			cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
 			q := client.Query{
 				Command:  cmd,
-				Database: r.db,
+				Database: r.Db,
 			}
 			response, err := clnt.Query(q)
 			if err != nil {
@@ -89,7 +88,7 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client, ch chan MonDatPoint) 
 					log.Fatal(err)
 				}
 
-				if t.After(lasttimestamp) || (!r.endtime.IsZero() && t.After(r.endtime)) {
+				if t.After(lasttimestamp) || (!r.Endtime.IsZero() && t.After(r.Endtime)) {
 					break LoopChunk // break chunk loop if timestamp of current query result exceeds the lasttimestamp or the defined endtime
 				}
 				if row[1] != nil {
@@ -126,7 +125,7 @@ func (r *InfluxMonDatReader) getFirstAndLastTimestamp(clnt client.Client, c adm.
 	cmd := "select first(response_time) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "'"
 	q := client.Query{
 		Command:  cmd,
-		Database: r.db,
+		Database: r.Db,
 	}
 	response, err := clnt.Query(q)
 	if err != nil {
@@ -143,7 +142,7 @@ func (r *InfluxMonDatReader) getFirstAndLastTimestamp(clnt client.Client, c adm.
 	cmd = "select last(response_time) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "'"
 	q = client.Query{
 		Command:  cmd,
-		Database: r.db,
+		Database: r.Db,
 	}
 	response, err = clnt.Query(q)
 	if err != nil {

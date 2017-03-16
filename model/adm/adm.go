@@ -14,6 +14,7 @@ type Component struct {
 func (c *Component) UniqName() string {
 	name := c.Hostname + "_" + c.Name
 	name = strings.Replace(name, ".", "_", -1)
+	name = strings.Replace(name, ",", "_", -1)
 	name = strings.Replace(name, ";", "_", -1)
 	name = strings.Replace(name, " ", "_", -1)
 	name = strings.Replace(name, "-", "_", -1)
