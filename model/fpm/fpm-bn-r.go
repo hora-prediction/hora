@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/teeratpitakrat/hora/model/adm"
 	"github.com/teeratpitakrat/hora/rbridge"
@@ -19,6 +20,7 @@ type FPMBNR struct {
 	compFailProb map[adm.Component]float64
 	rSession     roger.Session
 	lock         sync.Mutex
+	lastupdate   time.Time
 }
 
 func (f *FPMBNR) LoadADM(archmodel adm.ADM) {
@@ -143,7 +145,17 @@ func (f *FPMBNR) Update(c adm.Component, failProb float64) {
 		f.compFailProb = make(map[adm.Component]float64)
 	}
 	f.compFailProb[c] = failProb
-	f.Create()
+
+	go func() {
+		// TODO: handle batch mode with more frequent update
+		wait := 10 * time.Millisecond
+		time.Sleep(wait)
+		if time.Since(f.lastupdate) > wait {
+			log.Print("updating fpm")
+			f.lastupdate = time.Now()
+			f.Create()
+		}
+	}()
 }
 
 func (f *FPMBNR) Predict() (map[adm.Component]float64, error) {

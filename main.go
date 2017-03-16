@@ -2,8 +2,10 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/teeratpitakrat/hora/io"
+	"github.com/teeratpitakrat/hora/model/adm"
 	"github.com/teeratpitakrat/hora/model/fpm"
 )
 
@@ -38,18 +40,32 @@ func main() {
 	}
 	ch := reader.Read()
 	for {
-		d, ok := <-ch
+		_, ok := <-ch
 		if ok {
-			log.Print(d)
+			//log.Print(d)
 		} else {
 			break
 		}
 	}
 
+	res, err := f.Predict()
+	if err != nil {
+		log.Print("Error making prediction", err)
+	}
+	log.Print(res)
+
+	// update prob
+	// update fpm (with delay)
+	f.Update(adm.Component{"public void com.netflix.recipes.rss.manager.RSSManager.deleteSubscription(java.lang.String, java.lang.String)", "middletier-6d65k"}, 0.9)
+	time.Sleep(time.Second)
+	res, err = f.Predict()
+	if err != nil {
+		log.Print("Error making prediction", err)
+	}
+	log.Print(res)
+
 	// go routine
 	// read new data from channel
 	// make prediction for that component
-	// update prob
-	// update fpm (with delay)
 	// push result to influxdb
 }
