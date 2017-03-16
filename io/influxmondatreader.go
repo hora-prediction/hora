@@ -26,7 +26,8 @@ type InfluxMonDatReader struct {
 	// time resolution
 }
 
-func (r *InfluxMonDatReader) Read() {
+func (r *InfluxMonDatReader) Read() <-chan MonDatPoint {
+	ch := make(chan MonDatPoint)
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     r.addr,
 		Username: r.username,
@@ -34,16 +35,18 @@ func (r *InfluxMonDatReader) Read() {
 	})
 	if err != nil {
 		log.Fatal("Error: cannot create new influxdb client", err)
-		return
+		close(ch)
+		return ch
 	}
 	if r.batch {
-		r.readBatch(clnt)
+		go r.readBatch(clnt, ch)
 	} else {
-		r.readRealtime(clnt)
+		go r.readRealtime(clnt, ch)
 	}
+	return ch
 }
 
-func (r *InfluxMonDatReader) readBatch(clnt client.Client) {
+func (r *InfluxMonDatReader) readBatch(clnt client.Client, ch chan MonDatPoint) {
 	var monDat MonDat
 	for _, d := range r.archdepmod {
 		// Get first and last timestamp of this component in influxdb
@@ -55,6 +58,7 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client) {
 		} else {
 			curtimestamp = firsttimestamp.Add(-time.Nanosecond)
 		}
+
 		// TODO: query for different types of components
 
 	LoopChunk: // Loop to get all data because InfluxDB return max. 10000 records by default
@@ -108,13 +112,13 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client) {
 	// sort all data points by time
 	sort.Sort(monDat)
 	for _, d := range monDat {
-		r.ch <- d
+		ch <- d
 	}
-	close(r.ch)
+	close(ch)
 	return
 }
 
-func (r *InfluxMonDatReader) readRealtime(clnt client.Client) {
+func (r *InfluxMonDatReader) readRealtime(clnt client.Client, ch chan MonDatPoint) {
 }
 
 func (r *InfluxMonDatReader) getFirstAndLastTimestamp(clnt client.Client, c adm.Component) (time.Time, time.Time) {

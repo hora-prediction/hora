@@ -3,7 +3,6 @@ package io
 import (
 	"log"
 	"testing"
-	"time"
 
 	"github.com/teeratpitakrat/hora/model/adm"
 )
@@ -14,7 +13,7 @@ func TestReadBatch(t *testing.T) {
 
 	compFetch := adm.Component{
 		Name:     "public javax.ws.rs.core.Response com.netflix.recipes.rss.jersey.resources.MiddleTierResource.fetchSubscriptions(java.lang.String)",
-		Hostname: "middletier-l9scd",
+		Hostname: "middletier-rlz2x",
 	}
 	var compFetchDepList adm.DepList
 	compFetchDepList.Component = compFetch
@@ -22,7 +21,7 @@ func TestReadBatch(t *testing.T) {
 
 	compGet := adm.Component{
 		Name:     "protected java.lang.String com.netflix.recipes.rss.hystrix.GetRSSCommand.run()",
-		Hostname: "edge-mhs83",
+		Hostname: "edge-xprx0",
 	}
 	var compGetDepList adm.DepList
 	compGetDepList.Component = compGet
@@ -32,7 +31,6 @@ func TestReadBatch(t *testing.T) {
 	m[compGet.UniqName()] = compGetDepList
 	m[compFetch.UniqName()] = compFetchDepList
 
-	monDatCh := make(chan MonDatPoint)
 	reader := &InfluxMonDatReader{
 		archdepmod: m,
 		addr:       "http://localhost:8086",
@@ -40,13 +38,10 @@ func TestReadBatch(t *testing.T) {
 		password:   "root",
 		db:         "kieker",
 		batch:      true,
-		ch:         monDatCh,
-		starttime:  time.Unix(1487341740, 0),
-		endtime:    time.Unix(1487341740, 0),
 	}
-	go reader.Read()
+	ch := reader.Read()
 	for {
-		d, ok := <-monDatCh
+		d, ok := <-ch
 		if ok {
 			log.Print(d)
 		} else {
