@@ -1,14 +1,18 @@
-package arima
+package predictor
 
 import (
 	"container/ring"
 	"log"
 	"strconv"
+	"time"
 
 	"github.com/senseyeio/roger"
 
+	"github.com/teeratpitakrat/hora/io"
 	"github.com/teeratpitakrat/hora/model/adm"
 	"github.com/teeratpitakrat/hora/rbridge"
+
+	"github.com/chobie/go-gaussian"
 )
 
 var buflen = 20
@@ -16,19 +20,25 @@ var buflen = 20
 type ARIMAR struct {
 	component adm.Component
 	buf       *ring.Ring
+	interval  time.Duration
+	threshold float64
+	leadtime  time.Duration
 	rSession  roger.Session
 }
 
-type Result struct {
-	mean  float64
-	lower float64
-	upper float64
-}
+//type Result struct {
+//Mean  float64
+//Lower float64
+//Upper float64
+//}
 
-func New(c adm.Component) (*ARIMAR, error) {
+func New(c adm.Component, interval time.Duration, leadtime time.Duration, threshold float64) (*ARIMAR, error) {
 	var a ARIMAR
 	a.component = c
 	a.buf = ring.New(buflen)
+	a.interval = interval
+	a.threshold = threshold
+	a.leadtime = leadtime
 	session, err := rbridge.GetRSession(a.component.UniqName())
 	if err != nil {
 		log.Print("Error creating new ARIMAR predictor: ", err)
@@ -38,51 +48,55 @@ func New(c adm.Component) (*ARIMAR, error) {
 	return &a, nil
 }
 
-func (a *ARIMAR) Insert(p float64) {
+func (a *ARIMAR) Insert(p io.MonDatPoint) {
 	if a.buf == nil {
 		a.buf = ring.New(buflen)
 	}
+	// TODO: check timestamp and fill missing data points
 	a.buf = a.buf.Next()
 	a.buf.Value = p
 }
 
-func (a *ARIMAR) GetData() []float64 {
-	dat := make([]float64, buflen, buflen)
+func (a *ARIMAR) GetData() []io.MonDatPoint {
+	dat := make([]io.MonDatPoint, buflen, buflen)
 	for i := 0; i < buflen; i++ {
 		a.buf = a.buf.Next()
-		v := a.buf.Value
-		if v == nil {
+		p := a.buf.Value
+		if p == nil {
 			continue
 		}
-		dat[i] = v.(float64)
+		dat[i] = p.(io.MonDatPoint)
 	}
 	return dat
 }
 
-func (a *ARIMAR) Predict(step int64) (*Result, error) {
+func (a *ARIMAR) Predict() (CFPResult, error) {
+	var result CFPResult
 	// load data
 	cmd := "fit <- auto.arima(c("
 	for i, v := range a.GetData() {
 		if i > 0 {
 			cmd += ", "
 		}
-		cmd += strconv.FormatFloat(v, 'f', 6, 64)
+		cmd += strconv.FormatFloat(v.Value, 'f', 6, 64)
 	}
 	cmd += "))"
 	_, err := a.rSession.Eval(cmd)
 	if err != nil {
 		log.Print("Error: ", err)
-		return nil, err
+		return result, err
 	}
 
 	// forecast
 	cmd = "forecast(fit, h="
+	step := int64(a.leadtime / a.interval)
 	cmd += strconv.FormatInt(step, 10)
 	cmd += ")"
+	log.Print(cmd)
 	ret, err := a.rSession.Eval(cmd)
 	if err != nil {
 		log.Print("Error: ", err)
-		return nil, err
+		return result, err
 	}
 	res := ret.(map[string]interface{})
 
@@ -98,7 +112,11 @@ func (a *ARIMAR) Predict(step int64) (*Result, error) {
 	lower := lowerArray[len(lowerArray)-1]
 	upperArray := res["upper"].([]float64)
 	upper := upperArray[len(upperArray)-1]
+	sd := (upper - lower) / 3.92
 
-	result := &Result{mean, lower, upper}
+	distribution := gaussian.NewGaussian(mean, sd*sd)
+	failProb := 1 - distribution.Cdf(a.threshold)
+
+	result = CFPResult{a.component, a.buf.Value.(io.MonDatPoint).Timestamp, a.buf.Value.(io.MonDatPoint).Timestamp.Add(a.leadtime), failProb}
 	return result, nil
 }

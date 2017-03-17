@@ -38,9 +38,9 @@ func main() {
 		Db:         "kieker",
 		Batch:      true,
 	}
-	ch := reader.Read()
+	monDatCh := reader.Read()
 	for {
-		_, ok := <-ch
+		_, ok := <-monDatCh
 		if ok {
 			//log.Print(d)
 		} else {

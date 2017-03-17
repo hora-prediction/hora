@@ -2,6 +2,7 @@ package fpm
 
 import (
 	"testing"
+	"time"
 
 	"github.com/teeratpitakrat/hora/model/adm"
 	"github.com/teeratpitakrat/hora/rbridge"
@@ -69,6 +70,7 @@ func TestCreate(t *testing.T) {
 	}
 
 	f.Update(adm.Component{"D", "host4"}, 0.1)
+	time.Sleep(100 * time.Millisecond)
 	res, err = f.Predict()
 	if err != nil {
 		t.Error("Error making prediction", err)
@@ -91,6 +93,7 @@ func TestCreate(t *testing.T) {
 	}
 
 	f.Update(adm.Component{"D", "host4"}, 0.9)
+	time.Sleep(100 * time.Millisecond)
 	res, err = f.Predict()
 	if err != nil {
 		t.Error("Error making prediction", err)
@@ -114,6 +117,7 @@ func TestCreate(t *testing.T) {
 
 	f.Update(adm.Component{"D", "host4"}, 0.0)
 	f.Update(adm.Component{"B", "host2"}, 0.1)
+	time.Sleep(100 * time.Millisecond)
 	res, err = f.Predict()
 	if err != nil {
 		t.Error("Error making prediction", err)
@@ -137,6 +141,7 @@ func TestCreate(t *testing.T) {
 
 	f.Update(adm.Component{"B", "host2"}, 0.0)
 	f.Update(adm.Component{"A", "host1"}, 0.1)
+	time.Sleep(100 * time.Millisecond)
 	res, err = f.Predict()
 	if err != nil {
 		t.Error("Error making prediction", err)
@@ -146,7 +151,7 @@ func TestCreate(t *testing.T) {
 		t.Error("Expected: 0 but got", fprobA)
 	}
 	fprobB = res[adm.Component{"B", "host2"}]
-	if fprobB != 0 {
+	if fprobB > 0.1 {
 		t.Error("Expected: 0 but got", fprobB)
 	}
 	fprobC = res[adm.Component{"C", "host3"}]
