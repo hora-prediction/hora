@@ -92,7 +92,6 @@ func (a *ARIMAR) Predict() (CFPResult, error) {
 	step := int64(a.leadtime / a.interval)
 	cmd += strconv.FormatInt(step, 10)
 	cmd += ")"
-	log.Print(cmd)
 	ret, err := a.rSession.Eval(cmd)
 	if err != nil {
 		log.Print("Error: ", err)

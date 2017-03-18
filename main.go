@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/teeratpitakrat/hora/io"
-	"github.com/teeratpitakrat/hora/model/adm"
+	//"github.com/teeratpitakrat/hora/model/adm"
 	"github.com/teeratpitakrat/hora/model/fpm"
+	"github.com/teeratpitakrat/hora/predictor"
 )
 
 func main() {
@@ -39,30 +40,36 @@ func main() {
 		Batch:      true,
 	}
 	monDatCh := reader.Read()
-	for {
-		_, ok := <-monDatCh
-		if ok {
-			//log.Print(d)
-		} else {
-			break
-		}
-	}
+	log.Print("starting cfp")
+	cfpCh := predictor.Predict(monDatCh)
+	//for {
+	//_, ok := <-monDatCh
+	//if ok {
+	////log.Print(d)
+	//} else {
+	//break
+	//}
+	//}
 
-	res, err := f.Predict()
-	if err != nil {
-		log.Print("Error making prediction", err)
+	for cfpres := range cfpCh {
+		f.Update(cfpres.Component, cfpres.FailProb)
+		time.Sleep(100 * time.Millisecond)
+		res, err := f.Predict()
+		if err != nil {
+			log.Print("Error making prediction", err)
+		}
+		//log.Print("fpmres=", res)
 	}
-	log.Print(res)
 
 	// update prob
 	// update fpm (with delay)
-	f.Update(adm.Component{"public void com.netflix.recipes.rss.manager.RSSManager.deleteSubscription(java.lang.String, java.lang.String)", "middletier-6d65k"}, 0.9)
-	time.Sleep(time.Second)
-	res, err = f.Predict()
-	if err != nil {
-		log.Print("Error making prediction", err)
-	}
-	log.Print(res)
+	//f.Update(adm.Component{"public void com.netflix.recipes.rss.manager.RSSManager.deleteSubscription(java.lang.String, java.lang.String)", "middletier-6d65k"}, 0.9)
+	//time.Sleep(time.Second)
+	//res, err = f.Predict()
+	//if err != nil {
+	//log.Print("Error making prediction", err)
+	//}
+	//log.Print(res)
 
 	// go routine
 	// read new data from channel

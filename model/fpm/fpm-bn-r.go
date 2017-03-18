@@ -151,7 +151,7 @@ func (f *FPMBNR) Update(c adm.Component, failProb float64) {
 		wait := 10 * time.Millisecond
 		time.Sleep(wait)
 		if time.Since(f.lastupdate) > wait {
-			log.Print("updating fpm")
+			//log.Print("updating fpm")
 			f.lastupdate = time.Now()
 			f.Create()
 		}
