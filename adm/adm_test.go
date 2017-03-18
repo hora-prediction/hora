@@ -7,10 +7,10 @@ import (
 func TestADMSmall(t *testing.T) {
 	m := New()
 
-	compA := Component{"A", "host1"}
-	compB := Component{"B", "host2"}
-	compC := Component{"C", "host3"}
-	compD := Component{"D", "host4"}
+	compA := Component{"method1()", "host-1"}
+	compB := Component{"method2(param)", "host-2"}
+	compC := Component{"method3()", "host-3"}
+	compD := Component{"method4(param1, param2)", "host-4"}
 
 	depA := DependencyInfo{compA, make([]Dependency, 2, 2)}
 	depA.Component = compA
@@ -39,10 +39,10 @@ func TestADMSmall(t *testing.T) {
 			if len(v.Dependencies) != expected {
 				t.Error("Expected: ", expected, " but got ", len(v.Dependencies))
 			}
-			if v.Dependencies[0].Component.UniqName() != "host2_B" || v.Dependencies[0].Weight != 0.5 {
+			if v.Dependencies[0].Component.UniqName() != "host_2_method2_param_" || v.Dependencies[0].Weight != 0.5 {
 				t.Error("Wrong value")
 			}
-			if v.Dependencies[1].Component.UniqName() != "host3_C" || v.Dependencies[1].Weight != 0.5 {
+			if v.Dependencies[1].Component.UniqName() != "host_3_method3__" || v.Dependencies[1].Weight != 0.5 {
 				t.Error("Wrong value")
 			}
 		case compB.UniqName():
@@ -50,7 +50,7 @@ func TestADMSmall(t *testing.T) {
 			if len(v.Dependencies) != expected {
 				t.Error("Expected: ", expected, " but got ", len(v.Dependencies))
 			}
-			if v.Dependencies[0].Component.UniqName() != "host4_D" || v.Dependencies[0].Weight != 1 {
+			if v.Dependencies[0].Component.UniqName() != "host_4_method4_param1__param2_" || v.Dependencies[0].Weight != 1 {
 				t.Error("Wrong value")
 			}
 		case compC.UniqName():
@@ -58,7 +58,7 @@ func TestADMSmall(t *testing.T) {
 			if len(v.Dependencies) != expected {
 				t.Error("Expected: ", expected, " but got ", len(v.Dependencies))
 			}
-			if v.Dependencies[0].Component.UniqName() != "host4_D" || v.Dependencies[0].Weight != 1 {
+			if v.Dependencies[0].Component.UniqName() != "host_4_method4_param1__param2_" || v.Dependencies[0].Weight != 1 {
 				t.Error("Wrong value")
 			}
 		case compD.UniqName():
