@@ -7,8 +7,8 @@ import (
 type ADM map[string]DepList
 
 type Component struct {
-	Name     string `json:"name`
-	Hostname string `json:hostname`
+	Name     string `json:"name"`
+	Hostname string `json:"hostname"`
 }
 
 func (c *Component) UniqName() string {
