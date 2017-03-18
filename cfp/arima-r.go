@@ -63,8 +63,8 @@ func (a *ArimaR) TSPoints() mondat.TSPoints {
 	return dat
 }
 
-func (a *ArimaR) Predict() (CfpResult, error) {
-	var result CfpResult
+func (a *ArimaR) Predict() (Result, error) {
+	var result Result
 	// load data
 	cmd := "fit <- auto.arima(c("
 	for i, v := range a.TSPoints() {
@@ -109,6 +109,11 @@ func (a *ArimaR) Predict() (CfpResult, error) {
 	distribution := gaussian.NewGaussian(mean, sd*sd)
 	failProb := 1 - distribution.Cdf(a.threshold)
 
-	result = CfpResult{a.component, a.buf.Value.(mondat.TSPoint).Timestamp, a.buf.Value.(mondat.TSPoint).Timestamp.Add(a.leadtime), failProb}
+	result = Result{
+		a.component,
+		a.buf.Value.(mondat.TSPoint).Timestamp,
+		a.buf.Value.(mondat.TSPoint).Timestamp.Add(a.leadtime),
+		failProb,
+	}
 	return result, nil
 }

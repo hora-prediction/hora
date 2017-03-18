@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"time"
+	//"time"
 
 	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/cfp"
@@ -21,10 +21,7 @@ func main() {
 
 	// Create fpm
 	log.Print("creating fpm")
-	var f fpm.BnR
-	f.LoadADM(m)
-	log.Print("loaded fpm")
-	err = f.Create()
+	f, fpmResultCh, err := fpm.NewBayesNetR(m)
 	if err != nil {
 		log.Print("Error creating FPM", err)
 	}
@@ -40,43 +37,18 @@ func main() {
 		Batch:      true,
 	}
 	monDatCh := reader.Read()
-	log.Print("starting cfp")
-	cfpCh := cfp.Predict(monDatCh)
-	//for {
-	//_, ok := <-monDatCh
-	//if ok {
-	////log.Print(d)
-	//} else {
-	//break
-	//}
-	//}
 
-	for cfpres := range cfpCh {
-		f.Update(cfpres.Component, cfpres.FailProb)
-		time.Sleep(100 * time.Millisecond)
-		res, err := f.Predict()
-		if err != nil {
-			log.Print("Error making prediction", err)
-		}
-		//log.Print("fpmres=", res)
-		log.Print("New prediction")
-		for k, v := range res {
+	log.Print("starting cfp")
+	cfpResultCh := cfp.Predict(monDatCh)
+
+	for cfpResult := range cfpResultCh {
+		f.UpdateCfpResult(cfpResult)
+		fpmResult := <-fpmResultCh
+		log.Print(fpmResult.Timestamp)
+		log.Print(fpmResult.Predtime)
+		for k, v := range fpmResult.FailProbs {
 			log.Print(k, v)
 		}
+		// push result to influxdb
 	}
-
-	// update prob
-	// update fpm (with delay)
-	//f.Update(adm.Component{"public void com.netflix.recipes.rss.manager.RSSManager.deleteSubscription(java.lang.String, java.lang.String)", "middletier-6d65k"}, 0.9)
-	//time.Sleep(time.Second)
-	//res, err = f.Predict()
-	//if err != nil {
-	//log.Print("Error making prediction", err)
-	//}
-	//log.Print(res)
-
-	// go routine
-	// read new data from channel
-	// make prediction for that component
-	// push result to influxdb
 }

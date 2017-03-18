@@ -10,23 +10,23 @@ import (
 
 var cfps map[string]Cfp
 var step time.Duration = 5 * time.Minute
-var threshold float64 = 1e12
+var threshold float64 = 1e8
 
 type Cfp interface {
 	Insert(mondat.TSPoint)
 	TSPoints() mondat.TSPoints
-	Predict() (CfpResult, error)
+	Predict() (Result, error)
 }
 
-type CfpResult struct {
+type Result struct {
 	Component adm.Component
 	Timestamp time.Time
 	Predtime  time.Time
 	FailProb  float64
 }
 
-func Predict(monCh <-chan mondat.TSPoint) <-chan CfpResult {
-	var cfpResultCh = make(chan CfpResult)
+func Predict(monCh <-chan mondat.TSPoint) <-chan Result {
+	var cfpResultCh = make(chan Result)
 	cfps = make(map[string]Cfp)
 	go func() {
 		for tsPoint := range monCh {

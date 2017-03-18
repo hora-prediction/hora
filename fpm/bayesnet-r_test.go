@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/teeratpitakrat/hora/adm"
+	"github.com/teeratpitakrat/hora/cfp"
 	"github.com/teeratpitakrat/hora/rbridge"
 )
 
@@ -40,125 +41,129 @@ func TestCreate(t *testing.T) {
 	rbridge.SetHostname("localhost")
 	rbridge.SetPort(6311)
 
-	var f BnR
-	f.LoadADM(m)
-	err := f.Create()
+	f, fpmResultCh, err := NewBayesNetR(m)
 	if err != nil {
-		t.Error("Error creating BnR", err)
+		t.Error("Error creating BayesNetR", err)
 	}
 
-	res, err := f.Predict()
+	cfpResult := cfp.Result{adm.Component{"D", "host4"}, time.Unix(0, 0), time.Unix(0, 300), 0.0}
+	f.UpdateCfpResult(cfpResult)
+	fpmResult := <-fpmResultCh
 	if err != nil {
 		t.Error("Error making prediction", err)
 	}
 	// TODO: more precision checks
-	fprobA := res[adm.Component{"A", "host1"}]
+	fprobA := fpmResult.FailProbs[adm.Component{"A", "host1"}]
 	if fprobA != 0 {
 		t.Error("Expected: 0 but got", fprobA)
 	}
-	fprobB := res[adm.Component{"B", "host2"}]
+	fprobB := fpmResult.FailProbs[adm.Component{"B", "host2"}]
 	if fprobB != 0 {
 		t.Error("Expected: 0 but got", fprobB)
 	}
-	fprobC := res[adm.Component{"C", "host3"}]
+	fprobC := fpmResult.FailProbs[adm.Component{"C", "host3"}]
 	if fprobC != 0 {
 		t.Error("Expected: 0 but got", fprobC)
 	}
-	fprobD := res[adm.Component{"D", "host4"}]
+	fprobD := fpmResult.FailProbs[adm.Component{"D", "host4"}]
 	if fprobD != 0 {
 		t.Error("Expected: 0 but got", fprobD)
 	}
 
-	f.Update(adm.Component{"D", "host4"}, 0.1)
-	time.Sleep(100 * time.Millisecond)
-	res, err = f.Predict()
+	cfpResult = cfp.Result{adm.Component{"D", "host4"}, time.Unix(0, 0), time.Unix(0, 300), 0.1}
+	f.UpdateCfpResult(cfpResult)
+	fpmResult = <-fpmResultCh
 	if err != nil {
 		t.Error("Error making prediction", err)
 	}
-	fprobA = res[adm.Component{"A", "host1"}]
+	fprobA = fpmResult.FailProbs[adm.Component{"A", "host1"}]
 	if fprobA > 0.12 {
 		t.Error("Expected: 0 but got", fprobA)
 	}
-	fprobB = res[adm.Component{"B", "host2"}]
+	fprobB = fpmResult.FailProbs[adm.Component{"B", "host2"}]
 	if fprobB > 0.12 {
 		t.Error("Expected: 0 but got", fprobB)
 	}
-	fprobC = res[adm.Component{"C", "host3"}]
+	fprobC = fpmResult.FailProbs[adm.Component{"C", "host3"}]
 	if fprobC > 0.12 {
 		t.Error("Expected: 0 but got", fprobC)
 	}
-	fprobD = res[adm.Component{"D", "host4"}]
+	fprobD = fpmResult.FailProbs[adm.Component{"D", "host4"}]
 	if fprobD > 0.12 {
 		t.Error("Expected: 0 but got", fprobD)
 	}
 
-	f.Update(adm.Component{"D", "host4"}, 0.9)
-	time.Sleep(100 * time.Millisecond)
-	res, err = f.Predict()
+	cfpResult = cfp.Result{adm.Component{"D", "host4"}, time.Unix(0, 0), time.Unix(0, 300), 0.9}
+	f.UpdateCfpResult(cfpResult)
+	fpmResult = <-fpmResultCh
 	if err != nil {
 		t.Error("Error making prediction", err)
 	}
-	fprobA = res[adm.Component{"A", "host1"}]
+	fprobA = fpmResult.FailProbs[adm.Component{"A", "host1"}]
 	if fprobA < 0.89 {
 		t.Error("Expected: 0 but got", fprobA)
 	}
-	fprobB = res[adm.Component{"B", "host2"}]
+	fprobB = fpmResult.FailProbs[adm.Component{"B", "host2"}]
 	if fprobB < 0.89 {
 		t.Error("Expected: 0 but got", fprobB)
 	}
-	fprobC = res[adm.Component{"C", "host3"}]
+	fprobC = fpmResult.FailProbs[adm.Component{"C", "host3"}]
 	if fprobC < 0.89 {
 		t.Error("Expected: 0 but got", fprobC)
 	}
-	fprobD = res[adm.Component{"D", "host4"}]
+	fprobD = fpmResult.FailProbs[adm.Component{"D", "host4"}]
 	if fprobD < 0.89 {
 		t.Error("Expected: 0 but got", fprobD)
 	}
 
-	f.Update(adm.Component{"D", "host4"}, 0.0)
-	f.Update(adm.Component{"B", "host2"}, 0.1)
-	time.Sleep(100 * time.Millisecond)
-	res, err = f.Predict()
+	cfpResultD := cfp.Result{adm.Component{"D", "host4"}, time.Unix(0, 0), time.Unix(0, 300), 0.0}
+	f.UpdateCfpResult(cfpResultD)
+	fpmResult = <-fpmResultCh
+	cfpResultB := cfp.Result{adm.Component{"B", "host2"}, time.Unix(0, 0), time.Unix(0, 300), 0.1}
+	f.UpdateCfpResult(cfpResultB)
+	fpmResult = <-fpmResultCh
 	if err != nil {
 		t.Error("Error making prediction", err)
 	}
-	fprobA = res[adm.Component{"A", "host1"}]
+	fprobA = fpmResult.FailProbs[adm.Component{"A", "host1"}]
 	if fprobA > 0.12 {
 		t.Error("Expected: 0 but got", fprobA)
 	}
-	fprobB = res[adm.Component{"B", "host2"}]
+	fprobB = fpmResult.FailProbs[adm.Component{"B", "host2"}]
 	if fprobB > 0.12 {
 		t.Error("Expected: 0 but got", fprobB)
 	}
-	fprobC = res[adm.Component{"C", "host3"}]
+	fprobC = fpmResult.FailProbs[adm.Component{"C", "host3"}]
 	if fprobC != 0 {
 		t.Error("Expected: 0 but got", fprobC)
 	}
-	fprobD = res[adm.Component{"D", "host4"}]
+	fprobD = fpmResult.FailProbs[adm.Component{"D", "host4"}]
 	if fprobD != 0 {
 		t.Error("Expected: 0 but got", fprobD)
 	}
 
-	f.Update(adm.Component{"B", "host2"}, 0.0)
-	f.Update(adm.Component{"A", "host1"}, 0.1)
-	time.Sleep(100 * time.Millisecond)
-	res, err = f.Predict()
+	cfpResultB = cfp.Result{adm.Component{"B", "host2"}, time.Unix(0, 0), time.Unix(0, 300), 0.0}
+	cfpResultA := cfp.Result{adm.Component{"A", "host1"}, time.Unix(0, 0), time.Unix(0, 300), 0.1}
+	f.UpdateCfpResult(cfpResultB)
+	fpmResult = <-fpmResultCh
+	f.UpdateCfpResult(cfpResultA)
+	fpmResult = <-fpmResultCh
 	if err != nil {
 		t.Error("Error making prediction", err)
 	}
-	fprobA = res[adm.Component{"A", "host1"}]
+	fprobA = fpmResult.FailProbs[adm.Component{"A", "host1"}]
 	if fprobA > 0.12 {
 		t.Error("Expected: 0 but got", fprobA)
 	}
-	fprobB = res[adm.Component{"B", "host2"}]
+	fprobB = fpmResult.FailProbs[adm.Component{"B", "host2"}]
 	if fprobB > 0.1 {
 		t.Error("Expected: 0 but got", fprobB)
 	}
-	fprobC = res[adm.Component{"C", "host3"}]
+	fprobC = fpmResult.FailProbs[adm.Component{"C", "host3"}]
 	if fprobC != 0 {
 		t.Error("Expected: 0 but got", fprobC)
 	}
-	fprobD = res[adm.Component{"D", "host4"}]
+	fprobD = fpmResult.FailProbs[adm.Component{"D", "host4"}]
 	if fprobD != 0 {
 		t.Error("Expected: 0 but got", fprobD)
 	}

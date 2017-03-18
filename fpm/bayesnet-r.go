@@ -10,44 +10,51 @@ import (
 	"time"
 
 	"github.com/teeratpitakrat/hora/adm"
+	"github.com/teeratpitakrat/hora/cfp"
 	"github.com/teeratpitakrat/hora/rbridge"
 
 	"github.com/senseyeio/roger"
 )
 
-type BnR struct {
-	admodel      adm.ADM
-	compFailProb map[adm.Component]float64
-	rSession     roger.Session
-	lock         sync.Mutex
-	lastupdate   time.Time
+type BayesNetR struct {
+	admodel       adm.ADM
+	cfpResults    map[adm.Component]cfp.Result
+	cfpResultCh   chan cfp.Result
+	fpmResultCh   chan Result
+	rSession      roger.Session
+	lock          sync.Mutex
+	lastCfpResult cfp.Result
+	lastPredTime  time.Time
 }
 
-func (f *BnR) LoadADM(archmodel adm.ADM) {
-	f.admodel = archmodel
+type Result struct {
+	FailProbs map[adm.Component]float64
+	Timestamp time.Time
+	Predtime  time.Time
 }
 
-func (f *BnR) getRSession() (roger.Session, error) {
-	if f.rSession == nil {
-		rSession, err := rbridge.GetRSession("fpm" + strconv.FormatInt(rand.Int63(), 10))
-		if err != nil {
-			log.Print("Error: Cannot get R session", err)
-			return nil, err
-		}
-		f.rSession = rSession
-	}
-	return f.rSession, nil
-}
+func NewBayesNetR(m adm.ADM) (BayesNetR, <-chan Result, error) {
+	var f BayesNetR
 
-func (f *BnR) Create() error {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	session, err := f.getRSession()
+	rSession, err := rbridge.GetRSession("fpm" + strconv.FormatInt(rand.Int63(), 10))
 	if err != nil {
-		log.Print("Error: ", err)
-		return err
+		log.Print("Error: Cannot get R session", err)
+		return f, f.fpmResultCh, err
 	}
+	f.rSession = rSession
 
+	f.admodel = m
+	f.createBayesNet()
+
+	f.cfpResults = make(map[adm.Component]cfp.Result)
+	f.cfpResultCh = make(chan cfp.Result)
+	f.fpmResultCh = make(chan Result)
+
+	go f.start()
+	return f, f.fpmResultCh, nil
+}
+
+func (f *BayesNetR) createBayesNet() error {
 	// Create structure
 	cmd := "net <- model2network(\""
 	for _, v := range f.admodel {
@@ -64,7 +71,7 @@ func (f *BnR) Create() error {
 		cmd += "]"
 	}
 	cmd += "\")"
-	_, err = session.Eval(cmd)
+	_, err := f.rSession.Eval(cmd)
 	if err != nil {
 		log.Print("Error: ", err)
 		return err
@@ -76,11 +83,11 @@ func (f *BnR) Create() error {
 		nDeps := len(v.Dependencies)
 		cmd := ""
 		if nDeps == 0 {
-			cfProb, ok := f.compFailProb[v.Component]
+			cfpResult, ok := f.cfpResults[v.Component]
 			cmd = "cpt_" + v.Component.UniqName() + " <- matrix(c("
 			if ok {
-				cmd += strconv.FormatFloat(1-cfProb, 'f', 6, 64) + ", "
-				cmd += strconv.FormatFloat(cfProb, 'f', 6, 64)
+				cmd += strconv.FormatFloat(1-cfpResult.FailProb, 'f', 6, 64) + ", "
+				cmd += strconv.FormatFloat(cfpResult.FailProb, 'f', 6, 64)
 			} else {
 				cmd += "1.0, 0.0"
 			}
@@ -88,11 +95,11 @@ func (f *BnR) Create() error {
 		} else {
 			size := int(math.Pow(2, float64(nDeps)))
 			// Initial self prob when all components are ok
-			cfProb, ok := f.compFailProb[v.Component]
+			cfpResult, ok := f.cfpResults[v.Component]
 			if ok {
 				cmd = "cpt_" + v.Component.UniqName() + " <- c("
-				cmd += strconv.FormatFloat(1-cfProb, 'f', 6, 64) + ", "
-				cmd += strconv.FormatFloat(cfProb, 'f', 6, 64)
+				cmd += strconv.FormatFloat(1-cfpResult.FailProb, 'f', 6, 64) + ", "
+				cmd += strconv.FormatFloat(cfpResult.FailProb, 'f', 6, 64)
 			} else {
 				cmd = "cpt_" + v.Component.UniqName() + " <- c(1.0, 0.0"
 			}
@@ -115,7 +122,7 @@ func (f *BnR) Create() error {
 			}
 			cmd += ")"
 		}
-		_, err := session.Eval(cmd)
+		_, err := f.rSession.Eval(cmd)
 		if err != nil {
 			log.Print("Error: ", err)
 			return err
@@ -132,7 +139,7 @@ func (f *BnR) Create() error {
 		cmd += cName + "=" + "cpt_" + cName
 	}
 	cmd += "))"
-	_, err = session.Eval(cmd)
+	_, err = f.rSession.Eval(cmd)
 	if err != nil {
 		log.Print("Error: ", err)
 		return err
@@ -140,42 +147,44 @@ func (f *BnR) Create() error {
 	return nil
 }
 
-func (f *BnR) Update(c adm.Component, failProb float64) {
-	// TODO: include timestamp in input
-	if f.compFailProb == nil {
-		f.compFailProb = make(map[adm.Component]float64)
-	}
-	f.compFailProb[c] = failProb
+func (f *BayesNetR) UpdateAdm(m adm.ADM) {
 
-	go func() {
-		// TODO: handle batch mode with more frequent update
-		wait := 10 * time.Millisecond
-		time.Sleep(wait)
-		if time.Since(f.lastupdate) > wait {
-			//log.Print("updating fpm")
-			f.lastupdate = time.Now()
-			f.Create()
-		}
-	}()
 }
 
-func (f *BnR) Predict() (map[adm.Component]float64, error) {
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	session, err := f.getRSession()
-	if err != nil {
-		log.Print("Error: ", err)
-		return nil, err
-	}
-	res := make(map[adm.Component]float64)
+func (f *BayesNetR) UpdateCfpResult(cfpResult cfp.Result) {
+	f.cfpResultCh <- cfpResult
+}
+
+func (f *BayesNetR) predict() (Result, error) {
+	var result Result
+	result.Timestamp = f.lastCfpResult.Timestamp
+	result.Predtime = f.lastCfpResult.Predtime
+	result.FailProbs = make(map[adm.Component]float64)
 	for _, v := range f.admodel {
 		cmd := "cpquery(net.disc, (" + v.Component.UniqName() + " == \"fail\"), TRUE)"
-		ret, err := session.Eval(cmd)
+		ret, err := f.rSession.Eval(cmd)
 		if err != nil {
 			log.Print("Error: ", err)
-			return nil, err
+			return result, err
 		}
-		res[v.Component] = ret.(float64)
+		result.FailProbs[v.Component] = ret.(float64)
 	}
-	return res, err
+	return result, nil
+}
+
+func (f *BayesNetR) start() {
+	for {
+		select {
+		case cfpResult := <-f.cfpResultCh:
+			f.cfpResults[cfpResult.Component] = cfpResult
+			f.lastCfpResult = cfpResult
+			f.createBayesNet()
+			// TODO: do not predict for every single cfp result
+			result, err := f.predict()
+			if err != nil {
+				log.Fatal(err)
+			}
+			f.fpmResultCh <- result
+		}
+	}
 }

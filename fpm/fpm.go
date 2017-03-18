@@ -2,11 +2,10 @@ package fpm
 
 import (
 	"github.com/teeratpitakrat/hora/adm"
+	"github.com/teeratpitakrat/hora/cfp"
 )
 
-type FPM interface {
-	LoadADM(adm.ADM)
-	Create() error
-	Update(adm.Component, float64)
-	Predict() (map[adm.Component]float64, error)
+type Fpm interface {
+	UpdateAdm(adm.ADM)
+	UpdateCfpResult(cfpResult cfp.Result)
 }
