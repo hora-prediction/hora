@@ -53,12 +53,12 @@ func (f *FPMBNR) Create() error {
 	for _, v := range f.admodel {
 		cmd += "[" + v.Component.UniqName()
 		switch {
-		case len(v.Deps) == 1:
-			cmd += "|" + v.Deps[0].Component.UniqName()
-		case len(v.Deps) > 1:
-			cmd += "|" + v.Deps[0].Component.UniqName()
-			for i := 1; i < len(v.Deps); i++ {
-				cmd += ":" + v.Deps[i].Component.UniqName()
+		case len(v.Dependencies) == 1:
+			cmd += "|" + v.Dependencies[0].Component.UniqName()
+		case len(v.Dependencies) > 1:
+			cmd += "|" + v.Dependencies[0].Component.UniqName()
+			for i := 1; i < len(v.Dependencies); i++ {
+				cmd += ":" + v.Dependencies[i].Component.UniqName()
 			}
 		}
 		cmd += "]"
@@ -73,7 +73,7 @@ func (f *FPMBNR) Create() error {
 	// Create CPTs
 	states := "c(\"ok\",\"fail\")"
 	for _, v := range f.admodel {
-		nDeps := len(v.Deps)
+		nDeps := len(v.Dependencies)
 		cmd := ""
 		if nDeps == 0 {
 			cfProb, ok := f.compFailProb[v.Component]
@@ -101,7 +101,7 @@ func (f *FPMBNR) Create() error {
 				failProb := 0.0
 				for i, mask := 0, 1; i < nDeps; i, mask = i+1, mask<<1 {
 					if pState&mask > 0 {
-						failProb += v.Deps[nDeps-i-1].Weight
+						failProb += v.Dependencies[nDeps-i-1].Weight
 					}
 				}
 				cmd += ", " + strconv.FormatFloat(1-failProb, 'f', 6, 64)
@@ -110,7 +110,7 @@ func (f *FPMBNR) Create() error {
 			cmd += "); "
 			cmd += "dim(cpt_" + v.Component.UniqName() + ") <- c(2" + strings.Repeat(", 2", nDeps) + "); "
 			cmd += "dimnames(cpt_" + v.Component.UniqName() + ") <- list(\"" + v.Component.UniqName() + "\"=" + states
-			for _, d := range v.Deps {
+			for _, d := range v.Dependencies {
 				cmd += ", \"" + d.Component.UniqName() + "\"=" + states
 			}
 			cmd += ")"

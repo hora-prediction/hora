@@ -4,11 +4,15 @@ import (
 	"strings"
 )
 
-type ADM map[string]DepList
+type ADM map[string]DependencyInfo
 
 type Component struct {
 	Name     string `json:"name"`
 	Hostname string `json:"hostname"`
+}
+
+func New() ADM {
+	return make(ADM)
 }
 
 func (c *Component) UniqName() string {
@@ -23,12 +27,12 @@ func (c *Component) UniqName() string {
 	return name
 }
 
-type Dep struct {
+type Dependency struct {
 	Component Component `json:"component"`
 	Weight    float64   `json:"weight"`
 }
 
-type DepList struct {
-	Component Component `json:"component"`
-	Deps      []Dep     `json:"dependencies"`
+type DependencyInfo struct {
+	Component    Component    `json:"component"`
+	Dependencies []Dependency `json:"dependencies"`
 }

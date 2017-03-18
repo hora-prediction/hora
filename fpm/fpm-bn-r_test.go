@@ -16,23 +16,23 @@ func TestCreate(t *testing.T) {
 	compC := adm.Component{"C", "host3"}
 	compD := adm.Component{"D", "host4"}
 
-	depA := adm.DepList{compA, make([]adm.Dep, 2, 2)}
+	depA := adm.DependencyInfo{compA, make([]adm.Dependency, 2, 2)}
 	depA.Component = compA
-	depA.Deps[0] = adm.Dep{compB, 0.5}
-	depA.Deps[1] = adm.Dep{compC, 0.5}
+	depA.Dependencies[0] = adm.Dependency{compB, 0.5}
+	depA.Dependencies[1] = adm.Dependency{compC, 0.5}
 	m[compA.UniqName()] = depA
 
-	depB := adm.DepList{compB, make([]adm.Dep, 1, 1)}
+	depB := adm.DependencyInfo{compB, make([]adm.Dependency, 1, 1)}
 	depB.Component = compB
-	depB.Deps[0] = adm.Dep{compD, 1}
+	depB.Dependencies[0] = adm.Dependency{compD, 1}
 	m[compB.UniqName()] = depB
 
-	depC := adm.DepList{compC, make([]adm.Dep, 1, 1)}
+	depC := adm.DependencyInfo{compC, make([]adm.Dependency, 1, 1)}
 	depC.Component = compC
-	depC.Deps[0] = adm.Dep{compD, 1}
+	depC.Dependencies[0] = adm.Dependency{compD, 1}
 	m[compC.UniqName()] = depC
 
-	depD := adm.DepList{}
+	depD := adm.DependencyInfo{}
 	depD.Component = compD
 	m[compD.UniqName()] = depD
 

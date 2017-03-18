@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/teeratpitakrat/hora/adm"
+	"github.com/teeratpitakrat/hora/cfp"
 	"github.com/teeratpitakrat/hora/fpm"
 	"github.com/teeratpitakrat/hora/mondat"
 )
@@ -57,7 +58,7 @@ func main() {
 		if err != nil {
 			log.Print("Error making prediction", err)
 		}
-		//log.Print("fpmres=", res)
+		log.Print("fpmres=", res)
 	}
 
 	// update prob

@@ -15,21 +15,21 @@ func TestReadBatch(t *testing.T) {
 		Name:     "public javax.ws.rs.core.Response com.netflix.recipes.rss.jersey.resources.MiddleTierResource.fetchSubscriptions(java.lang.String)",
 		Hostname: "middletier-rlz2x",
 	}
-	var compFetchDepList adm.DepList
-	compFetchDepList.Component = compFetch
-	compFetchDepList.Deps = make([]adm.Dep, 0, 0)
+	var compFetchDepInfo adm.DependencyInfo
+	compFetchDepInfo.Component = compFetch
+	compFetchDepInfo.Dependencies = make([]adm.Dependency, 0, 0)
 
 	compGet := adm.Component{
 		Name:     "protected java.lang.String com.netflix.recipes.rss.hystrix.GetRSSCommand.run()",
 		Hostname: "edge-xprx0",
 	}
-	var compGetDepList adm.DepList
-	compGetDepList.Component = compGet
-	compGetDepList.Deps = make([]adm.Dep, 1, 1)
-	compGetDepList.Deps[0] = adm.Dep{compFetch, 1}
+	var compGetDepInfo adm.DependencyInfo
+	compGetDepInfo.Component = compGet
+	compGetDepInfo.Dependencies = make([]adm.Dependency, 1, 1)
+	compGetDepInfo.Dependencies[0] = adm.Dependency{compFetch, 1}
 
-	m[compGet.UniqName()] = compGetDepList
-	m[compFetch.UniqName()] = compFetchDepList
+	m[compGet.UniqName()] = compGetDepInfo
+	m[compFetch.UniqName()] = compFetchDepInfo
 
 	reader := &InfluxMonDatReader{
 		Archdepmod: m,
