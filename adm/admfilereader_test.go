@@ -41,7 +41,7 @@ func TestExportAndImport(t *testing.T) {
 	}
 	defer os.RemoveAll(dir) // clean up
 
-	Export(mExport, dir+"/mExport.json")
+	mExport.Export(dir + "/mExport.json")
 
 	// Import
 	mImport, err := Import(dir + "/mExport.json")

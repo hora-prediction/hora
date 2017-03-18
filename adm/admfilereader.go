@@ -17,7 +17,7 @@ func Import(path string) (ADM, error) {
 	return m, nil
 }
 
-func Export(m ADM, path string) error {
+func (m *ADM) Export(path string) error {
 	b, err := json.Marshal(m)
 	if err != nil {
 		log.Println(err)
