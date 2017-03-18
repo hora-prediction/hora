@@ -6,7 +6,7 @@ import (
 	"log"
 )
 
-func Import(path string) (ADM, error) {
+func ReadFile(path string) (ADM, error) {
 	var m ADM
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -17,7 +17,7 @@ func Import(path string) (ADM, error) {
 	return m, nil
 }
 
-func (m *ADM) Export(path string) error {
+func (m *ADM) WriteFile(path string) error {
 	b, err := json.Marshal(m)
 	if err != nil {
 		log.Println(err)

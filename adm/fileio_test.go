@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-func TestExportAndImport(t *testing.T) {
+func TestReadWriteFile(t *testing.T) {
 	// Export
-	mExport := New()
+	m := New()
 	compA := Component{"method1()", "host-1"}
 	compB := Component{"method2(param)", "host-2"}
 	compC := Component{"method3()", "host-3"}
@@ -19,21 +19,21 @@ func TestExportAndImport(t *testing.T) {
 	depA.Component = compA
 	depA.Dependencies[0] = Dependency{compB, 0.5}
 	depA.Dependencies[1] = Dependency{compC, 0.5}
-	mExport[compA.UniqName()] = depA
+	m[compA.UniqName()] = depA
 
 	depB := DependencyInfo{compB, make([]Dependency, 1, 1)}
 	depB.Component = compB
 	depB.Dependencies[0] = Dependency{compD, 1}
-	mExport[compB.UniqName()] = depB
+	m[compB.UniqName()] = depB
 
 	depC := DependencyInfo{compC, make([]Dependency, 1, 1)}
 	depC.Component = compC
 	depC.Dependencies[0] = Dependency{compD, 1}
-	mExport[compC.UniqName()] = depC
+	m[compC.UniqName()] = depC
 
 	depD := DependencyInfo{}
 	depD.Component = compD
-	mExport[compD.UniqName()] = depD
+	m[compD.UniqName()] = depD
 
 	dir, err := ioutil.TempDir("", "adm")
 	if err != nil {
@@ -41,22 +41,22 @@ func TestExportAndImport(t *testing.T) {
 	}
 	defer os.RemoveAll(dir) // clean up
 
-	mExport.Export(dir + "/mExport.json")
+	m.WriteFile(dir + "/m.json")
 
 	// Import
-	mImport, err := Import(dir + "/mExport.json")
+	mRead, err := ReadFile(dir + "/m.json")
 	if err != nil {
 		t.Error(err)
 	}
-	if len(mExport) != len(mImport) {
+	if len(m) != len(mRead) {
 		t.Error("Lengths of exported and imported ADMs are equal")
 	}
-	for k, v := range mExport {
-		if v.Component != mImport[k].Component {
-			t.Error("Expected %v but got %v", v.Component, mImport[k].Component)
+	for k, v := range m {
+		if v.Component != mRead[k].Component {
+			t.Error("Expected %v but got %v", v.Component, mRead[k].Component)
 		}
-		if len(v.Dependencies) != len(mImport[k].Dependencies) {
-			t.Error("Expected %v dependencies but got %v", len(v.Dependencies), len(mImport[k].Dependencies))
+		if len(v.Dependencies) != len(mRead[k].Dependencies) {
+			t.Error("Expected %v dependencies but got %v", len(v.Dependencies), len(mRead[k].Dependencies))
 		}
 		// TODO: check all dependencies
 	}
