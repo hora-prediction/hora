@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/teeratpitakrat/hora/model/adm"
+	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/rbridge"
 
 	"github.com/senseyeio/roger"

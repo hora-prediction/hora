@@ -1,10 +1,10 @@
-package io
+package mondat
 
 import (
 	"log"
 	"testing"
 
-	"github.com/teeratpitakrat/hora/model/adm"
+	"github.com/teeratpitakrat/hora/adm"
 )
 
 func TestReadBatch(t *testing.T) {

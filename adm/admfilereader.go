@@ -1,16 +1,13 @@
-package io
+package adm
 
 import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
-	//"os"
-
-	"github.com/teeratpitakrat/hora/model/adm"
 )
 
-func Import(path string) (adm.ADM, error) {
-	var m adm.ADM
+func Import(path string) (ADM, error) {
+	var m ADM
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		log.Print("Error reading json file", err)
@@ -20,7 +17,7 @@ func Import(path string) (adm.ADM, error) {
 	return m, nil
 }
 
-func Export(m adm.ADM, path string) error {
+func Export(m ADM, path string) error {
 	b, err := json.Marshal(m)
 	if err != nil {
 		log.Println(err)

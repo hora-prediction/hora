@@ -1,9 +1,9 @@
-package io
+package mondat
 
 import (
 	"time"
 
-	"github.com/teeratpitakrat/hora/model/adm"
+	"github.com/teeratpitakrat/hora/adm"
 )
 
 type MonDatPoint struct {

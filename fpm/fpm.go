@@ -1,7 +1,7 @@
 package fpm
 
 import (
-	"github.com/teeratpitakrat/hora/model/adm"
+	"github.com/teeratpitakrat/hora/adm"
 )
 
 type FPM interface {

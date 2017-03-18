@@ -4,17 +4,16 @@ import (
 	"log"
 	"time"
 
-	"github.com/teeratpitakrat/hora/io"
-	//"github.com/teeratpitakrat/hora/model/adm"
-	"github.com/teeratpitakrat/hora/model/fpm"
-	"github.com/teeratpitakrat/hora/predictor"
+	"github.com/teeratpitakrat/hora/adm"
+	"github.com/teeratpitakrat/hora/fpm"
+	"github.com/teeratpitakrat/hora/mondat"
 )
 
 func main() {
 
 	// Read and create adm from file
 	log.Print("reading adm")
-	m, err := io.Import("/tmp/adm.json")
+	m, err := adm.Import("/tmp/adm.json")
 	if err != nil {
 		log.Print("Error reading adm", err)
 	}
@@ -31,7 +30,7 @@ func main() {
 
 	// start reading new data from influxdb every 1 min and push to channel mondatch
 	log.Print("reading influxdb")
-	reader := io.InfluxMonDatReader{
+	reader := mondat.InfluxMonDatReader{
 		Archdepmod: m,
 		Addr:       "http://localhost:8086",
 		Username:   "root",
@@ -41,7 +40,7 @@ func main() {
 	}
 	monDatCh := reader.Read()
 	log.Print("starting cfp")
-	cfpCh := predictor.Predict(monDatCh)
+	cfpCh := cfp.Predict(monDatCh)
 	//for {
 	//_, ok := <-monDatCh
 	//if ok {

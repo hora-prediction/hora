@@ -1,10 +1,8 @@
-package io
+package adm
 
 import (
 	"log"
 	"testing"
-
-	"github.com/teeratpitakrat/hora/model/adm"
 )
 
 func TestImport(t *testing.T) {
@@ -16,24 +14,24 @@ func TestImport(t *testing.T) {
 }
 
 func TestExport(t *testing.T) {
-	m := make(adm.ADM)
+	m := make(ADM)
 
-	compFetch := adm.Component{
+	compFetch := Component{
 		Name:     "public javax.ws.rs.core.Response com.netflix.recipes.rss.jersey.resources.MiddleTierResource.fetchSubscriptions(java.lang.String)",
 		Hostname: "middletier-l9scd",
 	}
-	var compFetchDepList adm.DepList
+	var compFetchDepList DepList
 	compFetchDepList.Component = compFetch
-	compFetchDepList.Deps = make([]adm.Dep, 0, 0)
+	compFetchDepList.Deps = make([]Dep, 0, 0)
 
-	compGet := adm.Component{
+	compGet := Component{
 		Name:     "protected java.lang.String com.netflix.recipes.rss.hystrix.GetRSSCommand.run()",
 		Hostname: "edge-mhs83",
 	}
-	var compGetDepList adm.DepList
+	var compGetDepList DepList
 	compGetDepList.Component = compGet
-	compGetDepList.Deps = make([]adm.Dep, 1, 1)
-	compGetDepList.Deps[0] = adm.Dep{compFetch, 1}
+	compGetDepList.Deps = make([]Dep, 1, 1)
+	compGetDepList.Deps[0] = Dep{compFetch, 1}
 
 	m[compGet.UniqName()] = compGetDepList
 	m[compFetch.UniqName()] = compFetchDepList

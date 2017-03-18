@@ -1,4 +1,4 @@
-package io
+package mondat
 
 import (
 	"encoding/json"
@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/teeratpitakrat/hora/model/adm"
+	"github.com/teeratpitakrat/hora/adm"
 
 	"github.com/influxdata/influxdb/client/v2"
 )
