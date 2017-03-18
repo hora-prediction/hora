@@ -8,40 +8,45 @@ import (
 	"github.com/teeratpitakrat/hora/mondat"
 )
 
-var cfps map[string]*ARIMAR
+var cfps map[string]Cfp
 var step time.Duration = 5 * time.Minute
+var threshold float64 = 1e12
 
-type CFPResult struct {
+type Cfp interface {
+	Insert(mondat.TSPoint)
+	TSPoints() mondat.TSPoints
+	Predict() (CfpResult, error)
+}
+
+type CfpResult struct {
 	Component adm.Component
 	Timestamp time.Time
 	Predtime  time.Time
 	FailProb  float64
 }
 
-func Predict(monDatCh <-chan mondat.MonDatPoint) <-chan CFPResult {
-	var resCh = make(chan CFPResult)
-	cfps = make(map[string]*ARIMAR)
+func Predict(monCh <-chan mondat.TSPoint) <-chan CfpResult {
+	var cfpResultCh = make(chan CfpResult)
+	cfps = make(map[string]Cfp)
 	go func() {
-		for monDatPoint := range monDatCh {
-			comp := monDatPoint.Component
+		for tsPoint := range monCh {
+			comp := tsPoint.Component
 			cfp, ok := cfps[comp.UniqName()]
 			if !ok {
 				var err error
-				cfp, err = New(comp, time.Minute, 5*time.Minute, 1e8)
+				cfp, err = NewArimaR(comp, time.Minute, 5*time.Minute, threshold)
 				if err != nil {
 					log.Print(err)
 				}
 				cfps[comp.UniqName()] = cfp
 			}
-			//go func(cfp *ARIMAR, monDatPoint mondat.MonDatPoint) {
-			cfp.Insert(monDatPoint)
+			cfp.Insert(tsPoint)
 			res, err := cfp.Predict()
 			if err != nil {
 				log.Print(err)
 			}
-			resCh <- res
-			//}(cfp, monDatPoint)
+			cfpResultCh <- res
 		}
 	}()
-	return resCh
+	return cfpResultCh
 }

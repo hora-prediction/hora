@@ -15,7 +15,7 @@ import (
 	"github.com/senseyeio/roger"
 )
 
-type FPMBNR struct {
+type BnR struct {
 	admodel      adm.ADM
 	compFailProb map[adm.Component]float64
 	rSession     roger.Session
@@ -23,11 +23,11 @@ type FPMBNR struct {
 	lastupdate   time.Time
 }
 
-func (f *FPMBNR) LoadADM(archmodel adm.ADM) {
+func (f *BnR) LoadADM(archmodel adm.ADM) {
 	f.admodel = archmodel
 }
 
-func (f *FPMBNR) getRSession() (roger.Session, error) {
+func (f *BnR) getRSession() (roger.Session, error) {
 	if f.rSession == nil {
 		rSession, err := rbridge.GetRSession("fpm" + strconv.FormatInt(rand.Int63(), 10))
 		if err != nil {
@@ -39,7 +39,7 @@ func (f *FPMBNR) getRSession() (roger.Session, error) {
 	return f.rSession, nil
 }
 
-func (f *FPMBNR) Create() error {
+func (f *BnR) Create() error {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	session, err := f.getRSession()
@@ -140,7 +140,8 @@ func (f *FPMBNR) Create() error {
 	return nil
 }
 
-func (f *FPMBNR) Update(c adm.Component, failProb float64) {
+func (f *BnR) Update(c adm.Component, failProb float64) {
+	// TODO: include timestamp in input
 	if f.compFailProb == nil {
 		f.compFailProb = make(map[adm.Component]float64)
 	}
@@ -158,7 +159,7 @@ func (f *FPMBNR) Update(c adm.Component, failProb float64) {
 	}()
 }
 
-func (f *FPMBNR) Predict() (map[adm.Component]float64, error) {
+func (f *BnR) Predict() (map[adm.Component]float64, error) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 	session, err := f.getRSession()

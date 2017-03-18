@@ -31,7 +31,7 @@ func TestReadBatch(t *testing.T) {
 	m[compGet.UniqName()] = compGetDepInfo
 	m[compFetch.UniqName()] = compFetchDepInfo
 
-	reader := &InfluxMonDatReader{
+	reader := &InfluxKiekerReader{
 		Archdepmod: m,
 		Addr:       "http://localhost:8086",
 		Username:   "root",

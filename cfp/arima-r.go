@@ -6,18 +6,17 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/senseyeio/roger"
-
 	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/mondat"
 	"github.com/teeratpitakrat/hora/rbridge"
 
 	"github.com/chobie/go-gaussian"
+	"github.com/senseyeio/roger"
 )
 
 var buflen = 20
 
-type ARIMAR struct {
+type ArimaR struct {
 	component adm.Component
 	buf       *ring.Ring
 	interval  time.Duration
@@ -26,14 +25,8 @@ type ARIMAR struct {
 	rSession  roger.Session
 }
 
-//type Result struct {
-//Mean  float64
-//Lower float64
-//Upper float64
-//}
-
-func New(c adm.Component, interval time.Duration, leadtime time.Duration, threshold float64) (*ARIMAR, error) {
-	var a ARIMAR
+func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, threshold float64) (*ArimaR, error) {
+	var a ArimaR
 	a.component = c
 	a.buf = ring.New(buflen)
 	a.interval = interval
@@ -41,14 +34,14 @@ func New(c adm.Component, interval time.Duration, leadtime time.Duration, thresh
 	a.leadtime = leadtime
 	session, err := rbridge.GetRSession(a.component.UniqName())
 	if err != nil {
-		log.Print("Error creating new ARIMAR predictor: ", err)
+		log.Print("Error creating new ArimaR predictor: ", err)
 		return nil, err
 	}
 	a.rSession = session
 	return &a, nil
 }
 
-func (a *ARIMAR) Insert(p mondat.MonDatPoint) {
+func (a *ArimaR) Insert(p mondat.TSPoint) {
 	if a.buf == nil {
 		a.buf = ring.New(buflen)
 	}
@@ -57,24 +50,24 @@ func (a *ARIMAR) Insert(p mondat.MonDatPoint) {
 	a.buf.Value = p
 }
 
-func (a *ARIMAR) GetData() []mondat.MonDatPoint {
-	dat := make([]mondat.MonDatPoint, buflen, buflen)
+func (a *ArimaR) TSPoints() mondat.TSPoints {
+	dat := make(mondat.TSPoints, buflen, buflen)
 	for i := 0; i < buflen; i++ {
 		a.buf = a.buf.Next()
 		p := a.buf.Value
 		if p == nil {
 			continue
 		}
-		dat[i] = p.(mondat.MonDatPoint)
+		dat[i] = p.(mondat.TSPoint)
 	}
 	return dat
 }
 
-func (a *ARIMAR) Predict() (CFPResult, error) {
-	var result CFPResult
+func (a *ArimaR) Predict() (CfpResult, error) {
+	var result CfpResult
 	// load data
 	cmd := "fit <- auto.arima(c("
-	for i, v := range a.GetData() {
+	for i, v := range a.TSPoints() {
 		if i > 0 {
 			cmd += ", "
 		}
@@ -116,6 +109,6 @@ func (a *ARIMAR) Predict() (CFPResult, error) {
 	distribution := gaussian.NewGaussian(mean, sd*sd)
 	failProb := 1 - distribution.Cdf(a.threshold)
 
-	result = CFPResult{a.component, a.buf.Value.(mondat.MonDatPoint).Timestamp, a.buf.Value.(mondat.MonDatPoint).Timestamp.Add(a.leadtime), failProb}
+	result = CfpResult{a.component, a.buf.Value.(mondat.TSPoint).Timestamp, a.buf.Value.(mondat.TSPoint).Timestamp.Add(a.leadtime), failProb}
 	return result, nil
 }

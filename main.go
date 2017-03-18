@@ -14,14 +14,14 @@ func main() {
 
 	// Read and create adm from file
 	log.Print("reading adm")
-	m, err := adm.Import("/tmp/adm.json")
+	m, err := adm.ReadFile("/tmp/adm.json")
 	if err != nil {
 		log.Print("Error reading adm", err)
 	}
 
 	// Create fpm
 	log.Print("creating fpm")
-	var f fpm.FPMBNR
+	var f fpm.BnR
 	f.LoadADM(m)
 	log.Print("loaded fpm")
 	err = f.Create()
@@ -31,7 +31,7 @@ func main() {
 
 	// start reading new data from influxdb every 1 min and push to channel mondatch
 	log.Print("reading influxdb")
-	reader := mondat.InfluxMonDatReader{
+	reader := mondat.InfluxKiekerReader{
 		Archdepmod: m,
 		Addr:       "http://localhost:8086",
 		Username:   "root",
@@ -58,7 +58,11 @@ func main() {
 		if err != nil {
 			log.Print("Error making prediction", err)
 		}
-		log.Print("fpmres=", res)
+		//log.Print("fpmres=", res)
+		log.Print("New prediction")
+		for k, v := range res {
+			log.Print(k, v)
+		}
 	}
 
 	// update prob

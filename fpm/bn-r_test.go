@@ -40,11 +40,11 @@ func TestCreate(t *testing.T) {
 	rbridge.SetHostname("localhost")
 	rbridge.SetPort(6311)
 
-	var f FPMBNR
+	var f BnR
 	f.LoadADM(m)
 	err := f.Create()
 	if err != nil {
-		t.Error("Error creating FPM", err)
+		t.Error("Error creating BnR", err)
 	}
 
 	res, err := f.Predict()

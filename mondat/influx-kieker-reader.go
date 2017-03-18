@@ -12,7 +12,7 @@ import (
 	"github.com/influxdata/influxdb/client/v2"
 )
 
-type InfluxMonDatReader struct {
+type InfluxKiekerReader struct {
 	Archdepmod adm.ADM
 	Addr       string
 	Username   string
@@ -25,8 +25,8 @@ type InfluxMonDatReader struct {
 	// time resolution
 }
 
-func (r *InfluxMonDatReader) Read() <-chan MonDatPoint {
-	ch := make(chan MonDatPoint)
+func (r *InfluxKiekerReader) Read() <-chan TSPoint {
+	ch := make(chan TSPoint)
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     r.Addr,
 		Username: r.Username,
@@ -45,8 +45,8 @@ func (r *InfluxMonDatReader) Read() <-chan MonDatPoint {
 	return ch
 }
 
-func (r *InfluxMonDatReader) readBatch(clnt client.Client, ch chan MonDatPoint) {
-	var monDat MonDat
+func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
+	var tsPoints TSPoints
 	for _, d := range r.Archdepmod {
 		// Get first and last timestamp of this component in influxdb
 		var curtimestamp, firsttimestamp, lasttimestamp time.Time
@@ -93,11 +93,11 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client, ch chan MonDatPoint) 
 				}
 				if row[1] != nil {
 					val, _ := row[1].(json.Number).Float64()
-					point := MonDatPoint{d.Component, t, val}
-					monDat = append(monDat, point)
+					point := TSPoint{d.Component, t, val}
+					tsPoints = append(tsPoints, point)
 				} else {
-					point := MonDatPoint{d.Component, t, 0}
-					monDat = append(monDat, point)
+					point := TSPoint{d.Component, t, 0}
+					tsPoints = append(tsPoints, point)
 				}
 				// preventing querying the same record forever
 				if t.Sub(curtimestamp) < time.Minute {
@@ -109,18 +109,18 @@ func (r *InfluxMonDatReader) readBatch(clnt client.Client, ch chan MonDatPoint) 
 		}
 	}
 	// sort all data points by time
-	sort.Sort(monDat)
-	for _, d := range monDat {
+	sort.Sort(tsPoints)
+	for _, d := range tsPoints {
 		ch <- d
 	}
 	close(ch)
 	return
 }
 
-func (r *InfluxMonDatReader) readRealtime(clnt client.Client, ch chan MonDatPoint) {
+func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
 }
 
-func (r *InfluxMonDatReader) getFirstAndLastTimestamp(clnt client.Client, c adm.Component) (time.Time, time.Time) {
+func (r *InfluxKiekerReader) getFirstAndLastTimestamp(clnt client.Client, c adm.Component) (time.Time, time.Time) {
 	var firsttimestamp, lasttimestamp time.Time
 	cmd := "select first(response_time) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "'"
 	q := client.Query{
