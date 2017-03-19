@@ -1,11 +1,12 @@
 package adm
 
 import (
-	//"io/ioutil"
 	"log"
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/spf13/viper"
 )
 
 var html = []byte(`
@@ -81,6 +82,14 @@ var html = []byte(`
 `)
 
 func TestNetReader(t *testing.T) {
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.SetConfigType("toml")
+	viper.AddConfigPath("../.")
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {             // Handle errors reading the config file
+		log.Print("Fatal error config file: %s \n", err)
+	}
+
 	m := New()
 
 	compA := Component{"method1()", "host-1"}
@@ -108,14 +117,13 @@ func TestNetReader(t *testing.T) {
 	depD.Component = compD
 	m[compD.UniqName()] = depD
 
-	admCh := make(chan ADM)
-
-	r := NewNetReader(m, admCh)
-	go r.Serve()
+	r := NewNetReader(m)
+	r.Serve()
 
 	time.Sleep(100 * time.Millisecond) // Wait for server to start
 
-	req, err := http.NewRequest("GET", "http://localhost:8080", nil)
+	port := viper.GetString("webui.port")
+	req, err := http.NewRequest("GET", "http://localhost:"+port, nil)
 	if err != nil {
 		log.Print(err)
 	}

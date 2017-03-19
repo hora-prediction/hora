@@ -27,16 +27,20 @@ type NetReader struct {
 	admCh   chan ADM
 }
 
-func NewNetReader(m ADM, admCh chan ADM) NetReader {
+func NewNetReader(m ADM) NetReader {
+	admCh := make(chan ADM)
 	netReader := NetReader{m, admCh}
 	return netReader
 }
 
 func (r *NetReader) Serve() {
-	port := viper.GetString("webui.port")
-	http.HandleFunc("/", r.handler)
-	http.HandleFunc("/adm", r.posthandler)
-	http.ListenAndServe(":"+port, nil)
+	go func() {
+		port := viper.GetString("webui.port")
+		log.Print("port=", port)
+		http.HandleFunc("/adm", r.handler)
+		http.HandleFunc("/adm/post", r.posthandler)
+		http.ListenAndServe(":"+port, nil)
+	}()
 }
 
 func (r *NetReader) handler(w http.ResponseWriter, req *http.Request) {

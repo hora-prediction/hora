@@ -5,9 +5,19 @@ import (
 	"testing"
 
 	"github.com/teeratpitakrat/hora/adm"
+
+	"github.com/spf13/viper"
 )
 
 func TestReadBatch(t *testing.T) {
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.SetConfigType("toml")
+	viper.AddConfigPath("../.")
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {             // Handle errors reading the config file
+		log.Print("Fatal error config file: %s \n", err)
+	}
+
 	//TODO: rewrite
 	m := make(adm.ADM)
 
@@ -33,17 +43,18 @@ func TestReadBatch(t *testing.T) {
 
 	reader := &InfluxKiekerReader{
 		Archdepmod: m,
-		Addr:       "http://localhost:8086",
-		Username:   "root",
-		Password:   "root",
-		Db:         "kieker",
+		Addr:       viper.GetString("influxdb.addr"),
+		Username:   viper.GetString("influxdb.username"),
+		Password:   viper.GetString("influxdb.password"),
+		Db:         viper.GetString("influxdb.db.kieker"),
 		Batch:      true,
+		Interval:   viper.GetDuration("prediction.interval"),
 	}
 	ch := reader.Read()
 	for {
-		d, ok := <-ch
+		_, ok := <-ch
 		if ok {
-			log.Print(d)
+			//log.Print(d)
 		} else {
 			break
 		}

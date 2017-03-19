@@ -1,16 +1,31 @@
 package resultio
 
 import (
+	"log"
 	"testing"
 	"time"
 
 	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/cfp"
 	"github.com/teeratpitakrat/hora/fpm"
+
+	"github.com/spf13/viper"
 )
 
 func TestWriteCfpResult(t *testing.T) {
-	writer, err := New("http://localhost:8086", "root", "root")
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.SetConfigType("toml")
+	viper.AddConfigPath("../.")
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {             // Handle errors reading the config file
+		log.Print("Fatal error config file: %s \n", err)
+	}
+
+	writer, err := New(
+		viper.GetString("influxdb.addr"),
+		viper.GetString("influxdb.username"),
+		viper.GetString("influxdb.password"),
+	)
 	if err != nil {
 		t.Error(err)
 	}
@@ -33,7 +48,19 @@ func TestWriteCfpResult(t *testing.T) {
 }
 
 func TestWriteFpmResult(t *testing.T) {
-	writer, err := New("http://localhost:8086", "root", "root")
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.SetConfigType("toml")
+	viper.AddConfigPath("../.")
+	err := viper.ReadInConfig() // Find and read the config file
+	if err != nil {             // Handle errors reading the config file
+		log.Print("Fatal error config file: %s \n", err)
+	}
+
+	writer, err := New(
+		viper.GetString("influxdb.addr"),
+		viper.GetString("influxdb.username"),
+		viper.GetString("influxdb.password"),
+	)
 	if err != nil {
 		t.Error(err)
 	}

@@ -34,6 +34,11 @@ func main() {
 			log.Print("Error reading adm", err)
 		}
 	}
+	// Read and create adm from rest api
+	if viper.GetBool("adm.netio.enabled") {
+		netreader := adm.NewNetReader(m)
+		netreader.Serve()
+	}
 
 	// Create fpm
 	log.Print("Creating fpm")
