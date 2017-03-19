@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	//"time"
+	"time"
 
 	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/cfp"
@@ -41,6 +41,7 @@ func main() {
 		Password:   "root",
 		Db:         "kieker",
 		Batch:      true,
+		Interval:   time.Minute,
 	}
 	monDatCh := reader.Read()
 

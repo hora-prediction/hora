@@ -21,8 +21,8 @@ type InfluxKiekerReader struct {
 	Batch      bool
 	Starttime  time.Time
 	Endtime    time.Time
+	Interval   time.Duration
 	// aggregation type for each component type
-	// time resolution
 }
 
 func (r *InfluxKiekerReader) Read() <-chan TSPoint {
@@ -118,6 +118,55 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 }
 
 func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
+	// Wait until a full minute has passed
+	// TODO: wait according to r.Interval
+	remainingSeconds := time.Duration(60 - time.Now().Second())
+	time.Sleep(remainingSeconds * time.Second)
+	// Wait a few more seconds for data to arrive at influxdb
+	time.Sleep(5 * time.Second)
+	ticker := time.NewTicker(r.Interval)
+	curtime := time.Now().Truncate(time.Minute)
+	for {
+		log.Print("curtime=", curtime)
+		for _, d := range r.Archdepmod {
+			// TODO: query for different types of components
+			// TODO: change group by time according to r.Interval
+			cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
+			q := client.Query{
+				Command:  cmd,
+				Database: r.Db,
+			}
+			response, err := clnt.Query(q)
+			if err != nil {
+				log.Fatal("Error: cannot query data with cmd=", cmd, err)
+				break
+			}
+			if response.Error() != nil {
+				log.Fatal("Error: bad response with cmd=", cmd, response.Error())
+				break
+			}
+			res := response.Results
+
+			if len(res[0].Series) == 0 {
+				continue // no data - try next component
+			}
+			// Parse time and response time
+			for _, row := range res[0].Series[0].Values {
+				t, err := time.Parse(time.RFC3339, row[0].(string))
+				if err != nil {
+					log.Fatal(err)
+				}
+
+				if row[1] != nil {
+					val, _ := row[1].(json.Number).Float64()
+					point := TSPoint{d.Component, t, val}
+					ch <- point
+				}
+			}
+		}
+		curtime = <-ticker.C
+		curtime = curtime.Truncate(time.Minute)
+	}
 }
 
 func (r *InfluxKiekerReader) getFirstAndLastTimestamp(clnt client.Client, c adm.Component) (time.Time, time.Time) {
