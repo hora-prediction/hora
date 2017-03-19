@@ -8,6 +8,7 @@ import (
 	"github.com/teeratpitakrat/hora/cfp"
 	"github.com/teeratpitakrat/hora/fpm"
 	"github.com/teeratpitakrat/hora/mondat"
+	"github.com/teeratpitakrat/hora/resultio"
 )
 
 func main() {
@@ -26,6 +27,11 @@ func main() {
 		log.Print("Error creating FPM", err)
 	}
 
+	resultWriter, err := resultio.New("http://localhost:8086", "root", "root")
+	if err != nil {
+		log.Print(err)
+	}
+
 	// start reading new data from influxdb every 1 min and push to channel mondatch
 	log.Print("reading influxdb")
 	reader := mondat.InfluxKiekerReader{
@@ -42,8 +48,10 @@ func main() {
 	cfpResultCh := cfp.Predict(monDatCh)
 
 	for cfpResult := range cfpResultCh {
+		resultWriter.WriteCfpResult(cfpResult)
 		f.UpdateCfpResult(cfpResult)
 		fpmResult := <-fpmResultCh
+		resultWriter.WriteFpmResult(fpmResult)
 		log.Print(fpmResult.Timestamp)
 		log.Print(fpmResult.Predtime)
 		for k, v := range fpmResult.FailProbs {
