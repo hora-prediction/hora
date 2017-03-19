@@ -14,8 +14,6 @@ import (
 	"github.com/senseyeio/roger"
 )
 
-var buflen = 20
-
 type ArimaR struct {
 	component adm.Component
 	buf       *ring.Ring
@@ -25,9 +23,10 @@ type ArimaR struct {
 	rSession  roger.Session
 }
 
-func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, threshold float64) (*ArimaR, error) {
+func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, history time.Duration, threshold float64) (*ArimaR, error) {
 	var a ArimaR
 	a.component = c
+	buflen := int(history / interval)
 	a.buf = ring.New(buflen)
 	a.interval = interval
 	a.threshold = threshold
@@ -42,15 +41,14 @@ func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, 
 }
 
 func (a *ArimaR) Insert(p mondat.TSPoint) {
-	if a.buf == nil {
-		a.buf = ring.New(buflen)
-	}
 	// TODO: check timestamp and fill missing data points
+	// TODO: drop if data is older than the latest one
 	a.buf = a.buf.Next()
 	a.buf.Value = p
 }
 
 func (a *ArimaR) TSPoints() mondat.TSPoints {
+	buflen := a.buf.Len()
 	dat := make(mondat.TSPoints, buflen, buflen)
 	for i := 0; i < buflen; i++ {
 		a.buf = a.buf.Next()

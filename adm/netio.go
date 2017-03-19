@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+
+	"github.com/spf13/viper"
 )
 
 var htmlHeader = []byte(`
@@ -31,9 +33,10 @@ func NewNetReader(m ADM, admCh chan ADM) NetReader {
 }
 
 func (r *NetReader) Serve() {
+	port := viper.GetString("webui.port")
 	http.HandleFunc("/", r.handler)
 	http.HandleFunc("/adm", r.posthandler)
-	http.ListenAndServe(":8080", nil)
+	http.ListenAndServe(":"+port, nil)
 }
 
 func (r *NetReader) handler(w http.ResponseWriter, req *http.Request) {

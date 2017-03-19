@@ -7,6 +7,7 @@ import (
 	"github.com/teeratpitakrat/hora/fpm"
 
 	"github.com/influxdata/influxdb/client/v2"
+	"github.com/spf13/viper"
 )
 
 type InfluxResultWriter struct {
@@ -26,7 +27,7 @@ func New(addr, username, password string) (InfluxResultWriter, error) {
 	}
 	influxResultWriter.influxClnt = clnt
 
-	err = influxResultWriter.createDB("hora")
+	err = influxResultWriter.createDB(viper.GetString("influxdb.db.hora"))
 	if err != nil {
 		log.Fatal(err)
 		return influxResultWriter, err
@@ -37,8 +38,8 @@ func New(addr, username, password string) (InfluxResultWriter, error) {
 
 func (w *InfluxResultWriter) createDB(db string) error {
 	q := client.Query{
-		Command:  "CREATE DATABASE hora",
-		Database: "hora",
+		Command:  "CREATE DATABASE " + db,
+		Database: db,
 	}
 	if response, err := w.influxClnt.Query(q); err == nil {
 		if response.Error() != nil {

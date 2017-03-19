@@ -10,6 +10,7 @@ import (
 	"github.com/teeratpitakrat/hora/adm"
 
 	"github.com/influxdata/influxdb/client/v2"
+	"github.com/spf13/viper"
 )
 
 type InfluxKiekerReader struct {
@@ -38,8 +39,10 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 		return ch
 	}
 	if r.Batch {
+		log.Print("Read monitoring data in batch mode")
 		go r.readBatch(clnt, ch)
 	} else {
+		log.Print("Read monitoring data in realtime mode")
 		go r.readRealtime(clnt, ch)
 	}
 	return ch
@@ -62,7 +65,10 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 
 	LoopChunk: // Loop to get all data because InfluxDB return max. 10000 records by default
 		for {
-			cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
+			//cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
+			aggregation := viper.GetString("cfp.responsetime.aggregation")
+			aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
+			cmd := "select " + aggregation + "(\"response_time\"," + aggregationvalue + ") from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
 			q := client.Query{
 				Command:  cmd,
 				Database: r.Db,
@@ -127,11 +133,12 @@ func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
 	ticker := time.NewTicker(r.Interval)
 	curtime := time.Now().Truncate(time.Minute)
 	for {
-		log.Print("curtime=", curtime)
 		for _, d := range r.Archdepmod {
 			// TODO: query for different types of components
 			// TODO: change group by time according to r.Interval
-			cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
+			aggregation := viper.GetString("cfp.responsetime.aggregation")
+			aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
+			cmd := "select " + aggregation + "(\"response_time\"," + aggregationvalue + ") from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
 			q := client.Query{
 				Command:  cmd,
 				Database: r.Db,
@@ -188,6 +195,7 @@ func (r *InfluxKiekerReader) getFirstAndLastTimestamp(clnt client.Client, c adm.
 	res := response.Results
 	firsttimestamp, err = time.Parse(time.RFC3339, res[0].Series[0].Values[0][0].(string))
 
+	// TODO: query for different components
 	cmd = "select last(response_time) from operation_execution where \"hostname\" = '" + c.Hostname + "' and \"operation_signature\" = '" + c.Name + "'"
 	q = client.Query{
 		Command:  cmd,

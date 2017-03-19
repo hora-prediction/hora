@@ -6,11 +6,11 @@ import (
 
 	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/mondat"
+
+	"github.com/spf13/viper"
 )
 
 var cfps map[string]Cfp
-var step time.Duration = 5 * time.Minute
-var threshold float64 = 1e8
 
 type Cfp interface {
 	Insert(mondat.TSPoint)
@@ -34,7 +34,13 @@ func Predict(monCh <-chan mondat.TSPoint) <-chan Result {
 			cfp, ok := cfps[comp.UniqName()]
 			if !ok {
 				var err error
-				cfp, err = NewArimaR(comp, time.Minute, 5*time.Minute, threshold)
+				// TODO: choose predictor based on component type
+				interval := viper.GetDuration("prediction.interval")
+				leadtime := viper.GetDuration("prediction.leadtime")
+				history := viper.GetDuration("cfp.responsetime.history")
+				threshold := float64(viper.GetDuration("cfp.responsetime.threshold") / viper.GetDuration("cfp.responsetime.unit"))
+				log.Print("threshold=", threshold)
+				cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
 				if err != nil {
 					log.Print(err)
 				}

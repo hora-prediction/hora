@@ -1,0 +1,44 @@
+title = "Hora configuration"
+
+[webui]
+    port = 8080
+[prediction]
+	interval = "1m"
+	leadtime = "10m"
+	precision = "1ns"
+[adm]
+    [adm.fileio]
+        enabled = true
+        path = "/tmp/adm.json"
+    [adm.netio]
+        enabled = true
+[cfp]
+    [cfp.responsetime]
+	    unit = "1ns"
+	    threshold = "50ms"
+		predictor = "arima"
+        history = "20m"
+		aggregation = "percentile"
+		aggregationvalue = 95
+	[cfp.errorrate]
+    [cfp.cpu]
+        threshold = 1000
+    [cfp.memory]
+      	threshold = 100
+[fpm]
+    updateinterval = "10ms"
+[rserve]
+    addr = "http://localhost:6311"
+[influxdb]
+    addr = "http://localhost:8086"
+	username = "root"
+	password = "root"
+	batch = true
+	[influxdb.db]
+	    k8s = "k8s"
+	    kieker = "kieker"
+		hora = "hora"
+	[influxdb.table]
+		k8s = "k8s"
+	    kieker = "operation_execution"
+		hora = "hora"
