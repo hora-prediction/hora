@@ -27,12 +27,6 @@ type BayesNetR struct {
 	lastPredTime  time.Time
 }
 
-type Result struct {
-	FailProbs map[adm.Component]float64
-	Timestamp time.Time
-	Predtime  time.Time
-}
-
 func NewBayesNetR(m adm.ADM) (BayesNetR, <-chan Result, error) {
 	var f BayesNetR
 
