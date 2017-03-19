@@ -47,6 +47,7 @@ func Predict(monCh <-chan mondat.TSPoint) <-chan Result {
 			}
 			cfpResultCh <- res
 		}
+		close(cfpResultCh)
 	}()
 	return cfpResultCh
 }

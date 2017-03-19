@@ -169,7 +169,10 @@ func (f *BayesNetR) predict() (Result, error) {
 func (f *BayesNetR) start() {
 	for {
 		select {
-		case cfpResult := <-f.cfpResultCh:
+		case cfpResult, ok := <-f.cfpResultCh:
+			if !ok {
+				break
+			}
 			f.cfpResults[cfpResult.Component] = cfpResult
 			f.lastCfpResult = cfpResult
 			f.createBayesNet()
