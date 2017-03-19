@@ -52,11 +52,5 @@ func main() {
 		f.UpdateCfpResult(cfpResult)
 		fpmResult := <-fpmResultCh
 		resultWriter.WriteFpmResult(fpmResult)
-		log.Print(fpmResult.Timestamp)
-		log.Print(fpmResult.Predtime)
-		for k, v := range fpmResult.FailProbs {
-			log.Print(k, v)
-		}
-		// push result to influxdb
 	}
 }
