@@ -15,6 +15,7 @@ import (
 func main() {
 
 	// Read configurations
+	log.Print("Reading configuration")
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.SetConfigType("toml")
 	viper.AddConfigPath(".")
@@ -23,38 +24,57 @@ func main() {
 		log.Print("Fatal error config file: %s \n", err)
 	}
 
-	// Read and create adm from file
-	var m adm.ADM
-	if viper.GetBool("adm.fileio.enabled") {
-		admPath := viper.GetString("adm.fileio.path")
-		log.Print("Reading adm from ", admPath)
-		var err error
-		m, err = adm.ReadFile(admPath)
-		if err != nil {
-			log.Print("Error reading adm", err)
-		}
-	}
-	// Read and create adm from rest api
-	if viper.GetBool("adm.netio.enabled") {
-		netreader := adm.NewNetReader(m)
-		netreader.Serve()
-	}
+	// Read adm before continue
+	admCh := adm.NewReader()
+	log.Print("Reading ADM")
+	m := <-admCh
+	log.Print("Reading ADM done")
 
-	// Create fpm
-	log.Print("Creating fpm")
+	// Creating CFPs
+	cfpController, cfpResultCh := cfp.NewController(m)
+
+	// Creating FPM
 	f, fpmResultCh, err := fpm.NewBayesNetR(m)
 	if err != nil {
 		log.Print("Error creating FPM", err)
 	}
 
-	resultWriter, err := resultio.New(viper.GetString("influxdb.addr"), viper.GetString("influxdb.username"), viper.GetString("influxdb.password"))
+	resultWriter, err := resultio.New(
+		viper.GetString("influxdb.addr"),
+		viper.GetString("influxdb.username"),
+		viper.GetString("influxdb.password"),
+	)
 	if err != nil {
 		log.Print(err)
 	}
 
-	// Read monitoring data
-	log.Print("Reading from influxdb")
-	reader := mondat.InfluxKiekerReader{
+	go func() {
+		for {
+			m := <-admCh
+			log.Print("Updating ADM")
+			cfpController.UpdateADM(m)
+			f.UpdateAdm(m)
+			log.Print("Updating ADM done")
+		}
+	}()
+
+	go func() {
+		for {
+			cfpResult := <-cfpResultCh
+			f.UpdateCfpResult(cfpResult)
+			resultWriter.WriteCfpResult(cfpResult)
+		}
+	}()
+
+	go func() {
+		for {
+			fpmResult := <-fpmResultCh
+			resultWriter.WriteFpmResult(fpmResult)
+		}
+	}()
+
+	// Start reading monitoring data
+	influxReader := mondat.InfluxKiekerReader{
 		Archdepmod: m,
 		Addr:       viper.GetString("influxdb.addr"),
 		Username:   viper.GetString("influxdb.username"),
@@ -63,15 +83,16 @@ func main() {
 		Batch:      viper.GetBool("influxdb.batch"),
 		Interval:   viper.GetDuration("prediction.interval"),
 	}
-	monDatCh := reader.Read()
+	monDatCh := influxReader.Read()
 
-	log.Print("starting cfp")
-	cfpResultCh := cfp.Predict(monDatCh)
-
-	for cfpResult := range cfpResultCh {
-		resultWriter.WriteCfpResult(cfpResult)
-		f.UpdateCfpResult(cfpResult)
-		fpmResult := <-fpmResultCh
-		resultWriter.WriteFpmResult(fpmResult)
+	for {
+		monDat, ok := <-monDatCh
+		if !ok {
+			log.Print("Monitoring data channel closed. Terminating")
+			break
+		}
+		cfpController.AddMonDat(monDat)
+		// TODO: send mondat to eval
 	}
+
 }

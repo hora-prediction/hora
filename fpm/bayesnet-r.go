@@ -18,6 +18,7 @@ import (
 
 type BayesNetR struct {
 	admodel       adm.ADM
+	admCh         chan adm.ADM
 	cfpResults    map[adm.Component]cfp.Result
 	cfpResultCh   chan cfp.Result
 	fpmResultCh   chan Result
@@ -40,9 +41,10 @@ func NewBayesNetR(m adm.ADM) (BayesNetR, <-chan Result, error) {
 	f.admodel = m
 	f.createBayesNet()
 
+	f.admCh = make(chan adm.ADM, 1)
 	f.cfpResults = make(map[adm.Component]cfp.Result)
-	f.cfpResultCh = make(chan cfp.Result)
-	f.fpmResultCh = make(chan Result)
+	f.cfpResultCh = make(chan cfp.Result, 10)
+	f.fpmResultCh = make(chan Result, 10)
 
 	go f.start()
 	return f, f.fpmResultCh, nil
@@ -142,7 +144,7 @@ func (f *BayesNetR) createBayesNet() error {
 }
 
 func (f *BayesNetR) UpdateAdm(m adm.ADM) {
-
+	f.admCh <- m
 }
 
 func (f *BayesNetR) UpdateCfpResult(cfpResult cfp.Result) {
@@ -167,6 +169,7 @@ func (f *BayesNetR) predict() (Result, error) {
 }
 
 func (f *BayesNetR) start() {
+	log.Print("Starting FPM")
 	for {
 		select {
 		case cfpResult, ok := <-f.cfpResultCh:
@@ -182,6 +185,12 @@ func (f *BayesNetR) start() {
 				log.Fatal(err)
 			}
 			f.fpmResultCh <- result
+		case m, ok := <-f.admCh:
+			if !ok {
+				break
+			}
+			f.admodel = m
+			f.createBayesNet()
 		}
 	}
 }

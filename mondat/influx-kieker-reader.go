@@ -27,7 +27,7 @@ type InfluxKiekerReader struct {
 }
 
 func (r *InfluxKiekerReader) Read() <-chan TSPoint {
-	ch := make(chan TSPoint)
+	ch := make(chan TSPoint, 10)
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     r.Addr,
 		Username: r.Username,
@@ -39,10 +39,10 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 		return ch
 	}
 	if r.Batch {
-		log.Print("Read monitoring data in batch mode")
+		log.Print("Reading monitoring data in batch mode")
 		go r.readBatch(clnt, ch)
 	} else {
-		log.Print("Read monitoring data in realtime mode")
+		log.Print("Reading monitoring data in realtime mode")
 		go r.readRealtime(clnt, ch)
 	}
 	return ch
@@ -51,9 +51,14 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 	var tsPoints TSPoints
 	for _, d := range r.Archdepmod {
+		// TODO: check if influxdb has monitoring data of this component
 		// Get first and last timestamp of this component in influxdb
 		var curtimestamp, firsttimestamp, lasttimestamp time.Time
 		firsttimestamp, lasttimestamp = r.getFirstAndLastTimestamp(clnt, d.Component)
+		if firsttimestamp.IsZero() && lasttimestamp.IsZero() {
+			// Cannot find monitoring data. skip to the next component
+			continue
+		}
 		// Get the larger starttime
 		if r.Starttime.After(firsttimestamp) {
 			curtimestamp = r.Starttime.Add(-time.Nanosecond)
@@ -65,7 +70,6 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 
 	LoopChunk: // Loop to get all data because InfluxDB return max. 10000 records by default
 		for {
-			//cmd := "select percentile(\"response_time\",95) from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
 			aggregation := viper.GetString("cfp.responsetime.aggregation")
 			aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
 			cmd := "select " + aggregation + "(\"response_time\"," + aggregationvalue + ") from operation_execution where \"hostname\" = '" + d.Component.Hostname + "' and \"operation_signature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
@@ -193,6 +197,10 @@ func (r *InfluxKiekerReader) getFirstAndLastTimestamp(clnt client.Client, c adm.
 		return time.Unix(0, 0), time.Unix(0, 0)
 	}
 	res := response.Results
+	if len(res[0].Series) == 0 {
+		log.Print("Error: cannot find first timestamp of component: ", c, response.Error())
+		return time.Unix(0, 0), time.Unix(0, 0)
+	}
 	firsttimestamp, err = time.Parse(time.RFC3339, res[0].Series[0].Values[0][0].(string))
 
 	// TODO: query for different components

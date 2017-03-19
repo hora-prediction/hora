@@ -8,14 +8,14 @@ title = "Hora configuration"
 	precision = "1ns"
 [adm]
     [adm.fileio]
-        enabled = true
+        enabled = false
         path = "/tmp/adm.json"
     [adm.netio]
         enabled = true
 [cfp]
     [cfp.responsetime]
 	    unit = "1ns"
-	    threshold = "50ms"
+	    threshold = "500ms"
 		predictor = "arima"
         history = "20m"
 		aggregation = "percentile"

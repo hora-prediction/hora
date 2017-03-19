@@ -117,7 +117,8 @@ func TestNetReader(t *testing.T) {
 	depD.Component = compD
 	m[compD.UniqName()] = depD
 
-	r := NewNetReader(m)
+	admCh := make(chan ADM)
+	r := NewNetReader(m, admCh)
 	r.Serve()
 
 	time.Sleep(100 * time.Millisecond) // Wait for server to start
