@@ -90,6 +90,8 @@ func TestNetReader(t *testing.T) {
 		log.Print("Fatal error config file: %s \n", err)
 	}
 
+	viper.SetDefault("webui.port", "8080")
+
 	m := New()
 
 	compA := Component{"method1()", "host-1"}

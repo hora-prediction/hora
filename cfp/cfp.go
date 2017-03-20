@@ -32,6 +32,12 @@ type Result struct {
 }
 
 func NewController(model adm.ADM) (*CfpController, <-chan Result) {
+	viper.SetDefault("prediction.interval", "1m")
+	viper.SetDefault("prediction.leadtime", "10m")
+	viper.SetDefault("cfp.responsetime.unit", "1ns")
+	viper.SetDefault("cfp.responsetime.threshold", "500ms")
+	viper.SetDefault("cfp.responsetime.history", "20m")
+
 	c := CfpController{
 		cfps:        make(map[string]Cfp),
 		m:           model,

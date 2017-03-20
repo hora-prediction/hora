@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/senseyeio/roger"
+	"github.com/spf13/viper"
 )
 
 var hostname = "localhost"
@@ -19,6 +20,12 @@ func SetPort(p int64) {
 }
 
 func GetRSession(sesName string) (roger.Session, error) {
+	viper.SetDefault("rserve.hostname", "localhost")
+	viper.SetDefault("rserve.port", "6311")
+
+	hostname := viper.GetString("rserve.hostname")
+	port := viper.GetInt64("rserve.port")
+
 	session, ok := smap[sesName]
 	if !ok {
 		client, err := roger.NewRClient(hostname, port)

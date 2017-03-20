@@ -15,6 +15,8 @@ type InfluxResultWriter struct {
 }
 
 func New(addr, username, password string) (InfluxResultWriter, error) {
+	viper.SetDefault("influxdb.db.hora", "hora")
+
 	var influxResultWriter InfluxResultWriter
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     addr,

@@ -12,6 +12,9 @@ type AdmReader struct {
 }
 
 func NewReader() chan ADM {
+	viper.SetDefault("adm.fileio.path", "/tmp/adm.json")
+	viper.SetDefault("adm.netio.enabled", true)
+
 	reader := AdmReader{
 		make(ADM),
 		make(chan ADM, 1),

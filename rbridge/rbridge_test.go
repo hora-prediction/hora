@@ -4,17 +4,7 @@ import (
 	"testing"
 )
 
-func TestGetRSessionFail(t *testing.T) {
-	SetHostname("localhost")
-	SetPort(6310) // Wrong port
-	_, err := GetRSession("A")
-	if err != nil {
-		return
-	}
-	t.Error("Expected session error")
-}
-
-func TestGetRSessionOK(t *testing.T) {
+func TestGetRSession(t *testing.T) {
 	SetHostname("localhost")
 	SetPort(6311)
 	sessionA, err := GetRSession("A")

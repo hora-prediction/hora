@@ -18,6 +18,11 @@ func TestReadBatch(t *testing.T) {
 		log.Print("Fatal error config file: %s \n", err)
 	}
 
+	viper.SetDefault("influxdb.addr", "http://localhost:8086")
+	viper.SetDefault("influxdb.username", "root")
+	viper.SetDefault("influxdb.password", "root")
+	viper.SetDefault("influxdb.db.kieker", "kieker")
+
 	//TODO: rewrite
 	m := make(adm.ADM)
 

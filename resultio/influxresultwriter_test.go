@@ -21,6 +21,10 @@ func TestWriteCfpResult(t *testing.T) {
 		log.Print("Fatal error config file: %s \n", err)
 	}
 
+	viper.SetDefault("influxdb.addr", "http://localhost:8086")
+	viper.SetDefault("influxdb.username", "root")
+	viper.SetDefault("influxdb.password", "root")
+
 	writer, err := New(
 		viper.GetString("influxdb.addr"),
 		viper.GetString("influxdb.username"),
@@ -55,6 +59,10 @@ func TestWriteFpmResult(t *testing.T) {
 	if err != nil {             // Handle errors reading the config file
 		log.Print("Fatal error config file: %s \n", err)
 	}
+
+	viper.SetDefault("influxdb.addr", "http://localhost:8086")
+	viper.SetDefault("influxdb.username", "root")
+	viper.SetDefault("influxdb.password", "root")
 
 	writer, err := New(
 		viper.GetString("influxdb.addr"),

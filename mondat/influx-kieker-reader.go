@@ -27,6 +27,9 @@ type InfluxKiekerReader struct {
 }
 
 func (r *InfluxKiekerReader) Read() <-chan TSPoint {
+	viper.SetDefault("cfp.responsetime.aggregation", "percentile")
+	viper.SetDefault("cfp.responsetime.aggregationvalue", "95")
+
 	ch := make(chan TSPoint, 10)
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     r.Addr,

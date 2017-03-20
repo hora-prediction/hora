@@ -28,7 +28,7 @@ title = "Hora configuration"
 [fpm]
     updateinterval = "10ms"
 [rserve]
-    addr = "http://localhost:6311"
+    addr = "http://rserve:6311"
 [influxdb]
     addr = "http://localhost:8086"
 	username = "root"

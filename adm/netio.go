@@ -32,6 +32,8 @@ type NetReader struct {
 }
 
 func NewNetReader(m ADM, admCh chan ADM) NetReader {
+	viper.SetDefault("webui.port", "8080")
+
 	netReader := NetReader{m, admCh}
 	return netReader
 }
