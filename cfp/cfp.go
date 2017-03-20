@@ -60,9 +60,13 @@ func (c *CfpController) UpdateADM(m adm.ADM) {
 func (c *CfpController) start() {
 	log.Print("Starting CfpController")
 	go func() {
+	Loop:
 		for {
 			select {
 			case tsPoint, ok := <-c.monCh:
+				if !ok {
+					break Loop
+				}
 				comp := tsPoint.Component
 				cfp, ok := c.cfps[comp.UniqName()]
 				if !ok {
