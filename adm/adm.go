@@ -9,6 +9,7 @@ type ADM map[string]DependencyInfo
 type Component struct {
 	Name     string `json:"name"`
 	Hostname string `json:"hostname"`
+	Type     string `json:"type"`
 }
 
 func New() ADM {
@@ -16,7 +17,8 @@ func New() ADM {
 }
 
 func (c *Component) UniqName() string {
-	name := c.Hostname + "_" + c.Name
+	name := c.Type + "_" + c.Hostname + "_" + c.Name
+	// TODO: use strings.Replacer
 	name = strings.Replace(name, ".", "_", -1)
 	name = strings.Replace(name, ",", "_", -1)
 	name = strings.Replace(name, ";", "_", -1)

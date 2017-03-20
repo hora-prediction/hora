@@ -94,10 +94,10 @@ func TestNetReader(t *testing.T) {
 
 	m := New()
 
-	compA := Component{"method1()", "host-1"}
-	compB := Component{"method2(param)", "host-2"}
-	compC := Component{"method3()", "host-3"}
-	compD := Component{"method4(param1, param2)", "host-4"}
+	compA := Component{"method1()", "host-1", "responsetime"}
+	compB := Component{"method2(param)", "host-2", "responsetime"}
+	compC := Component{"method3()", "host-3", "responsetime"}
+	compD := Component{"method4(param1, param2)", "host-4", "responsetime"}
 
 	depA := DependencyInfo{compA, make([]Dependency, 2, 2)}
 	depA.Component = compA

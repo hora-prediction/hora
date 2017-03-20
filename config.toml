@@ -15,7 +15,7 @@ title = "Hora configuration"
 [cfp]
     [cfp.responsetime]
 	    unit = "1ns"
-	    threshold = "500ms"
+	    threshold = "100ms"
 		predictor = "arima"
         history = "20m"
 		aggregation = "percentile"
@@ -23,8 +23,16 @@ title = "Hora configuration"
 	[cfp.errorrate]
     [cfp.cpu]
         threshold = 1000
+		predictor = "arima"
+        history = "20m"
+		aggregation = "percentile"
+		aggregationvalue = 95
     [cfp.memory]
-      	threshold = 100
+      	threshold = 2000000000
+		predictor = "arima"
+        history = "20m"
+		aggregation = "percentile"
+		aggregationvalue = 95
 [fpm]
     updateinterval = "10ms"
 [rserve]

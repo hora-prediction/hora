@@ -51,6 +51,10 @@ func NewBayesNetR(m adm.ADM) (BayesNetR, <-chan Result, error) {
 }
 
 func (f *BayesNetR) createBayesNet() error {
+	// See documentation of bnlearn package in R for more details
+	// Example: https://rstudio-pubs-static.s3.amazonaws.com/124744_09170b0a7e414cb8bf492daa6773f2fe.html
+	// and http://sujitpal.blogspot.de/2013/07/bayesian-network-inference-with-r-and.html
+
 	// Create structure
 	cmd := "net <- model2network(\""
 	for _, v := range f.admodel {
@@ -105,6 +109,9 @@ func (f *BayesNetR) createBayesNet() error {
 				for i, mask := 0, 1; i < nDeps; i, mask = i+1, mask<<1 {
 					if pState&mask > 0 {
 						failProb += v.Dependencies[nDeps-i-1].Weight
+						if failProb > 1.0 {
+							failProb = 1.0
+						}
 					}
 				}
 				cmd += ", " + strconv.FormatFloat(1-failProb, 'f', 6, 64)

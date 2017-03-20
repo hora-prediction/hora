@@ -74,13 +74,32 @@ func (c *CfpController) start() {
 					// TODO: choose predictor based on component type
 					interval := viper.GetDuration("prediction.interval")
 					leadtime := viper.GetDuration("prediction.leadtime")
-					history := viper.GetDuration("cfp.responsetime.history")
-					threshold := float64(viper.GetDuration("cfp.responsetime.threshold") / viper.GetDuration("cfp.responsetime.unit"))
-					cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
-					if err != nil {
-						log.Print(err)
+					switch comp.Type {
+					case "responsetime":
+						history := viper.GetDuration("cfp.responsetime.history")
+						threshold := float64(viper.GetDuration("cfp.responsetime.threshold") / viper.GetDuration("cfp.responsetime.unit"))
+						cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
+						if err != nil {
+							log.Print(err)
+						}
+						c.cfps[comp.UniqName()] = cfp
+					case "cpu":
+						history := viper.GetDuration("cfp.cpu.history")
+						threshold := viper.GetFloat64("cfp.cpu.threshold")
+						cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
+						if err != nil {
+							log.Print(err)
+						}
+						c.cfps[comp.UniqName()] = cfp
+					case "memory":
+						history := viper.GetDuration("cfp.memory.history")
+						threshold := viper.GetFloat64("cfp.memory.threshold")
+						cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
+						if err != nil {
+							log.Print(err)
+						}
+						c.cfps[comp.UniqName()] = cfp
 					}
-					c.cfps[comp.UniqName()] = cfp
 				}
 				cfp.Insert(tsPoint)
 				res, err := cfp.Predict()

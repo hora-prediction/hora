@@ -29,6 +29,7 @@ func TestReadBatch(t *testing.T) {
 	compFetch := adm.Component{
 		Name:     "public javax.ws.rs.core.Response com.netflix.recipes.rss.jersey.resources.MiddleTierResource.fetchSubscriptions(java.lang.String)",
 		Hostname: "middletier-rlz2x",
+		Type:     "responsetime",
 	}
 	var compFetchDepInfo adm.DependencyInfo
 	compFetchDepInfo.Component = compFetch
@@ -37,6 +38,7 @@ func TestReadBatch(t *testing.T) {
 	compGet := adm.Component{
 		Name:     "protected java.lang.String com.netflix.recipes.rss.hystrix.GetRSSCommand.run()",
 		Hostname: "edge-xprx0",
+		Type:     "responsetime",
 	}
 	var compGetDepInfo adm.DependencyInfo
 	compGetDepInfo.Component = compGet

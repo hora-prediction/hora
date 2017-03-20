@@ -69,6 +69,7 @@ func (w *InfluxResultWriter) WriteCfpResult(result cfp.Result) error {
 	tags := map[string]string{
 		"name":     result.Component.Name,
 		"hostname": result.Component.Hostname,
+		"type":     result.Component.Type,
 	}
 	fields := map[string]interface{}{
 		"failureProbability": result.FailProb,
@@ -105,6 +106,7 @@ func (w *InfluxResultWriter) WriteFpmResult(result fpm.Result) error {
 		tags := map[string]string{
 			"name":     k.Name,
 			"hostname": k.Hostname,
+			"type":     k.Type,
 		}
 		fields := map[string]interface{}{
 			"failureProbability": v,

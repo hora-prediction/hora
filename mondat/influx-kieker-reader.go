@@ -18,7 +18,8 @@ type InfluxKiekerReader struct {
 	Addr       string
 	Username   string
 	Password   string
-	Db         string
+	KiekerDb   string
+	K8sDb      string
 	Batch      bool
 	Starttime  time.Time
 	Endtime    time.Time
@@ -79,7 +80,7 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 			cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
 			q := client.Query{
 				Command:  cmd,
-				Database: r.Db,
+				Database: r.KiekerDb,
 			}
 			response, err := clnt.Query(q)
 			if err != nil {
@@ -144,15 +145,36 @@ func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
 	for {
 		log.Print("Reading monitoring data at ", curtime)
 		for _, d := range r.Archdepmod {
-			// TODO: query for different types of components
-			// TODO: change group by time according to r.Interval
-			aggregation := viper.GetString("cfp.responsetime.aggregation")
-			aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
-			//cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
-			cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
-			q := client.Query{
-				Command:  cmd,
-				Database: r.Db,
+			var q client.Query
+			var cmd string
+			// Query for different types of components
+			switch d.Component.Type {
+			case "responsetime":
+				aggregation := viper.GetString("cfp.responsetime.aggregation")
+				aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
+				// TODO: change group by time according to r.Interval
+				//cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
+				cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
+				q = client.Query{
+					Command:  cmd,
+					Database: r.KiekerDb,
+				}
+			case "cpu":
+				aggregation := viper.GetString("cfp.cpu.aggregation")
+				aggregationvalue := viper.GetString("cfp.cpu.aggregationvalue")
+				cmd := "select " + aggregation + "(\"value\"," + aggregationvalue + ") from \"cpu/usage_rate\" where \"pod_name\" = '" + d.Component.Hostname + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
+				q = client.Query{
+					Command:  cmd,
+					Database: r.K8sDb,
+				}
+			case "memory":
+				aggregation := viper.GetString("cfp.memory.aggregation")
+				aggregationvalue := viper.GetString("cfp.memory.aggregationvalue")
+				cmd := "select " + aggregation + "(\"value\"," + aggregationvalue + ") from \"cpu/usage_rate\" where \"pod_name\" = '" + d.Component.Hostname + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
+				q = client.Query{
+					Command:  cmd,
+					Database: r.K8sDb,
+				}
 			}
 			response, err := clnt.Query(q)
 			if err != nil {
@@ -192,7 +214,7 @@ func (r *InfluxKiekerReader) getFirstAndLastTimestamp(clnt client.Client, c adm.
 	cmd := "select first(responseTime) from OperationExecution where \"hostname\" = '" + c.Hostname + "' and \"operationSignature\" = '" + c.Name + "'"
 	q := client.Query{
 		Command:  cmd,
-		Database: r.Db,
+		Database: r.KiekerDb,
 	}
 	response, err := clnt.Query(q)
 	if err != nil {
@@ -214,7 +236,7 @@ func (r *InfluxKiekerReader) getFirstAndLastTimestamp(clnt client.Client, c adm.
 	cmd = "select last(responseTime) from OperationExecution where \"hostname\" = '" + c.Hostname + "' and \"operationSignature\" = '" + c.Name + "'"
 	q = client.Query{
 		Command:  cmd,
-		Database: r.Db,
+		Database: r.KiekerDb,
 	}
 	response, err = clnt.Query(q)
 	if err != nil {

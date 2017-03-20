@@ -83,7 +83,8 @@ func main() {
 		Addr:       viper.GetString("influxdb.addr"),
 		Username:   viper.GetString("influxdb.username"),
 		Password:   viper.GetString("influxdb.password"),
-		Db:         viper.GetString("influxdb.db.kieker"),
+		KiekerDb:   viper.GetString("influxdb.db.kieker"),
+		K8sDb:      viper.GetString("influxdb.db.k8s"),
 		Batch:      viper.GetBool("influxdb.batch"),
 		Interval:   viper.GetDuration("prediction.interval"),
 	}
