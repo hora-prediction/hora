@@ -28,12 +28,13 @@ title = "Hora configuration"
 [fpm]
     updateinterval = "10ms"
 [rserve]
-    addr = "http://rserve:6311"
+    hostname = "rserve"
+	port = 6311
 [influxdb]
-    addr = "http://localhost:8086"
+    addr = "http://influxdb:8086"
 	username = "root"
 	password = "root"
-	batch = true
+	batch = false
 	[influxdb.db]
 	    k8s = "k8s"
 	    kieker = "kieker"
