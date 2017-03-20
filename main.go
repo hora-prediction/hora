@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"strings"
 
 	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/cfp"
@@ -13,7 +14,6 @@ import (
 )
 
 func main() {
-
 	// Read configurations
 	log.Print("Reading configuration")
 	viper.SetConfigName("config") // name of config file (without extension)
@@ -23,6 +23,10 @@ func main() {
 	if err != nil {             // Handle errors reading the config file
 		log.Print("Fatal error config file: %s \n", err)
 	}
+
+	viper.SetEnvPrefix("hora") // will be uppercased automatically
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	// Read adm before continue
 	admCh := adm.NewReader()
