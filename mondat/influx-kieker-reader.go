@@ -75,7 +75,8 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 		for {
 			aggregation := viper.GetString("cfp.responsetime.aggregation")
 			aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
-			cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
+			//cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
+			cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
 			q := client.Query{
 				Command:  cmd,
 				Database: r.Db,
@@ -133,19 +134,22 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
 	// Wait until a full minute has passed
 	// TODO: wait according to r.Interval
-	remainingSeconds := time.Duration(60 - time.Now().Second())
-	time.Sleep(remainingSeconds * time.Second)
+	remainingSeconds := time.Duration((60 - time.Now().Second()) * 1e9)
+	log.Print("Waiting ", remainingSeconds)
+	time.Sleep(remainingSeconds)
 	// Wait a few more seconds for data to arrive at influxdb
 	time.Sleep(5 * time.Second)
 	ticker := time.NewTicker(r.Interval)
 	curtime := time.Now().Truncate(time.Minute)
 	for {
+		log.Print("Reading monitoring data at ", curtime)
 		for _, d := range r.Archdepmod {
 			// TODO: query for different types of components
 			// TODO: change group by time according to r.Interval
 			aggregation := viper.GetString("cfp.responsetime.aggregation")
 			aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
-			cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
+			//cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
+			cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
 			q := client.Query{
 				Command:  cmd,
 				Database: r.Db,
