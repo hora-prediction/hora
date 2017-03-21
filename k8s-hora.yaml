@@ -30,7 +30,24 @@ spec:
     spec:
       containers:
       - name: hora
-        image: teeratpitakrat/hora:0.0.1
+        image: teeratpitakrat/hora:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 8080
+        env:
+          - name: HORA_CFP_RESPONSETIME_THRESHOLD
+            value: "100ms"
+          - name: HORA_CFP_RESPONSETIME_HISTORY
+            value: "30m"
+          - name: HORA_PREDICTION_LEADTIME
+            value: "10m"
+          - name: HORA_RSERVE_HOSTNAME
+            value: "rserve"
+          - name: HORA_RSERVE_PORT
+            value: 6311
+          - name: HORA_INFLUXDB_ADDR
+            value: "http://influxdb:8086"
+          - name: HORA_INFLUXDB_USERNAME
+            value: "root"
+          - name: HORA_INFLUXDB_PASSWORD
+            value: "root"
