@@ -51,3 +51,5 @@ spec:
             value: "root"
           - name: HORA_INFLUXDB_PASSWORD
             value: "root"
+          - name: HORA_INFLUXDB_BATCH
+            value: false
