@@ -194,6 +194,7 @@ func (f *BayesNetR) start() {
 			f.fpmResultCh <- result
 		case m, ok := <-f.admCh:
 			if !ok {
+				log.Print("admCh closed. Terminating FPM")
 				break
 			}
 			f.admodel = m

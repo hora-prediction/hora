@@ -33,8 +33,8 @@ func TestWriteCfpResult(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	a := adm.Component{"A", "host1", "responsetime"}
-	b := adm.Component{"B", "host2", "responsetime"}
+	a := adm.Component{"A", "host1", "responsetime", 0}
+	b := adm.Component{"B", "host2", "responsetime", 0}
 	resulta := cfp.Result{
 		a,
 		time.Now(),
@@ -73,8 +73,8 @@ func TestWriteFpmResult(t *testing.T) {
 		t.Error(err)
 	}
 
-	a := adm.Component{"A", "host1", "responsetime"}
-	b := adm.Component{"B", "host2", "responsetime"}
+	a := adm.Component{"A", "host1", "responsetime", 0}
+	b := adm.Component{"B", "host2", "responsetime", 0}
 	failProbs := make(map[adm.Component]float64)
 	failProbs[a] = 0.2
 	failProbs[b] = 0.3

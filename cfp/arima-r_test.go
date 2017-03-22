@@ -13,7 +13,7 @@ import (
 var testdat = []float64{60, 43, 67, 50, 56, 42, 50, 65, 68, 43, 65, 34, 47, 34, 49, 41, 13, 35, 53, 56}
 
 func TestInsert(t *testing.T) {
-	c := adm.Component{"A", "host1", "responsetime"}
+	c := adm.Component{"A", "host1", "responsetime", 0}
 	a, err := NewArimaR(c, time.Minute, 5*time.Minute, 20*time.Minute, 70)
 	if err != nil {
 		t.Error("Error getting new ArimaR", err)
@@ -34,7 +34,7 @@ func TestInsert(t *testing.T) {
 }
 
 func TestPredict(t *testing.T) {
-	c := adm.Component{"A", "host1", "responsetime"}
+	c := adm.Component{"A", "host1", "responsetime", 0}
 	a, err := NewArimaR(c, time.Minute, 5*time.Minute, 20*time.Minute, 70)
 	if err != nil {
 		t.Error("Error getting new ArimaR", err)

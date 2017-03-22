@@ -94,30 +94,30 @@ func TestNetReader(t *testing.T) {
 
 	m := New()
 
-	compA := Component{"method1()", "host-1", "responsetime"}
-	compB := Component{"method2(param)", "host-2", "responsetime"}
-	compC := Component{"method3()", "host-3", "responsetime"}
-	compD := Component{"method4(param1, param2)", "host-4", "responsetime"}
+	compA := Component{"method1()", "host-1", "responsetime", 0}
+	compB := Component{"method2(param)", "host-2", "responsetime", 0}
+	compC := Component{"method3()", "host-3", "responsetime", 0}
+	compD := Component{"method4(param1, param2)", "host-4", "responsetime", 0}
 
 	depA := DependencyInfo{compA, make([]Dependency, 2, 2)}
 	depA.Component = compA
-	depA.Dependencies[0] = Dependency{compB, 0.5}
-	depA.Dependencies[1] = Dependency{compC, 0.5}
-	m[compA.UniqName()] = depA
+	depA.Dependencies[0] = Dependency{compB, 0.5, 0}
+	depA.Dependencies[1] = Dependency{compC, 0.5, 0}
+	m[compA.UniqName()] = &depA
 
 	depB := DependencyInfo{compB, make([]Dependency, 1, 1)}
 	depB.Component = compB
-	depB.Dependencies[0] = Dependency{compD, 1}
-	m[compB.UniqName()] = depB
+	depB.Dependencies[0] = Dependency{compD, 1, 0}
+	m[compB.UniqName()] = &depB
 
 	depC := DependencyInfo{compC, make([]Dependency, 1, 1)}
 	depC.Component = compC
-	depC.Dependencies[0] = Dependency{compD, 1}
-	m[compC.UniqName()] = depC
+	depC.Dependencies[0] = Dependency{compD, 1, 0}
+	m[compC.UniqName()] = &depC
 
 	depD := DependencyInfo{}
 	depD.Component = compD
-	m[compD.UniqName()] = depD
+	m[compD.UniqName()] = &depD
 
 	admCh := make(chan ADM)
 	r := NewNetReader(m, admCh)

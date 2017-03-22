@@ -30,9 +30,9 @@ func main() {
 
 	// Read adm before continue
 	admCh := adm.NewReader()
-	log.Print("Reading ADM")
+	log.Print("Waiting for ADM")
 	m := <-admCh
-	log.Print("Reading ADM done")
+	log.Print("Waiting for ADM done")
 
 	// Creating CFPs
 	cfpController, cfpResultCh := cfp.NewController(m)

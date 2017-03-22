@@ -43,17 +43,17 @@ func TestReadBatch(t *testing.T) {
 	var compGetDepInfo adm.DependencyInfo
 	compGetDepInfo.Component = compGet
 	compGetDepInfo.Dependencies = make([]adm.Dependency, 1, 1)
-	compGetDepInfo.Dependencies[0] = adm.Dependency{compFetch, 1}
+	compGetDepInfo.Dependencies[0] = adm.Dependency{compFetch, 1, 0}
 
-	m[compGet.UniqName()] = compGetDepInfo
-	m[compFetch.UniqName()] = compFetchDepInfo
+	m[compGet.UniqName()] = &compGetDepInfo
+	m[compFetch.UniqName()] = &compFetchDepInfo
 
 	reader := &InfluxKiekerReader{
 		Archdepmod: m,
 		Addr:       viper.GetString("influxdb.addr"),
 		Username:   viper.GetString("influxdb.username"),
 		Password:   viper.GetString("influxdb.password"),
-		Db:         viper.GetString("influxdb.db.kieker"),
+		KiekerDb:   viper.GetString("influxdb.db.kieker"),
 		Batch:      true,
 		Interval:   viper.GetDuration("prediction.interval"),
 	}
