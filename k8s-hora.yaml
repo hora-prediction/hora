@@ -44,7 +44,7 @@ spec:
           - name: HORA_RSERVE_HOSTNAME
             value: "rserve"
           - name: HORA_RSERVE_PORT
-            value: 6311
+            value: "6311"
           - name: HORA_INFLUXDB_ADDR
             value: "http://influxdb:8086"
           - name: HORA_INFLUXDB_USERNAME
@@ -52,4 +52,4 @@ spec:
           - name: HORA_INFLUXDB_PASSWORD
             value: "root"
           - name: HORA_INFLUXDB_BATCH
-            value: false
+            value: "FALSE"
