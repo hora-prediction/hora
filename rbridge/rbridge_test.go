@@ -5,6 +5,10 @@ import (
 )
 
 func TestGetRSession(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+
 	SetHostname("localhost")
 	SetPort(6311)
 	sessionA, err := GetRSession("A")

@@ -10,6 +10,9 @@ import (
 )
 
 func TestReadBatch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.SetConfigType("toml")
 	viper.AddConfigPath("../.")

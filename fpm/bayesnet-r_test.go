@@ -10,6 +10,9 @@ import (
 )
 
 func TestCreate(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
 	m := make(adm.ADM)
 
 	compA := adm.Component{"A", "host1", "responsetime", 0}
