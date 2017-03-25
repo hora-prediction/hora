@@ -5,6 +5,16 @@ import (
 	"strings"
 )
 
+var replacer *strings.Replacer = strings.NewReplacer(
+	".", "_",
+	",", "_",
+	";", "_",
+	" ", "_",
+	"-", "_",
+	"(", "_",
+	")", "_",
+)
+
 type ADM map[string]*DependencyInfo
 
 type Component struct {
@@ -20,15 +30,7 @@ func New() ADM {
 
 func (c *Component) UniqName() string {
 	name := c.Type + "_" + c.Hostname + "_" + c.Name
-	// TODO: use strings.Replacer
-	name = strings.Replace(name, ".", "_", -1)
-	name = strings.Replace(name, ",", "_", -1)
-	name = strings.Replace(name, ";", "_", -1)
-	name = strings.Replace(name, " ", "_", -1)
-	name = strings.Replace(name, "-", "_", -1)
-	name = strings.Replace(name, "(", "_", -1)
-	name = strings.Replace(name, ")", "_", -1)
-	return name
+	return replacer.Replace(name)
 }
 
 type Dependency struct {
