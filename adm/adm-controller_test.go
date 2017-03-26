@@ -33,7 +33,7 @@ func TestFileWatcher(t *testing.T) {
 	controller := NewController()
 
 	select {
-	case newModel := <-controller.admCh:
+	case newModel := <-controller.AdmCh:
 		if newModel.String() != refModel.String() {
 			t.Errorf("Expected\n%s\nbut got\n%v", refModel.String(), newModel.String())
 		}
@@ -82,7 +82,7 @@ func TestRestApi(t *testing.T) {
 	}()
 
 	select {
-	case newModel := <-controller.admCh:
+	case newModel := <-controller.AdmCh:
 		if newModel.String() != refModel.String() {
 			t.Errorf("Expected\n%s\nbut got\n%v", refModel.String(), newModel.String())
 		}
