@@ -22,7 +22,7 @@ var testdat = []float64{60, 43, 67, 50, 56, 42, 50, 65, 68, 43, 65, 34, 47, 34, 
 
 func TestInsert(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping test in short mode.")
+		t.Skip("Skipping test in short mode.")
 	}
 	c := adm.Component{"A", "host1", "responsetime", 0}
 	a, err := NewArimaR(c, time.Minute, 5*time.Minute, 20*time.Minute, 70)
@@ -46,7 +46,7 @@ func TestInsert(t *testing.T) {
 
 func TestPredict(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping test in short mode.")
+		t.Skip("Skipping test in short mode.")
 	}
 	c := adm.Component{"A", "host1", "responsetime", 0}
 	a, err := NewArimaR(c, time.Minute, 5*time.Minute, 20*time.Minute, 70)
@@ -67,7 +67,7 @@ func TestPredict(t *testing.T) {
 
 func TestPredictLinearData0percFail(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping test in short mode.")
+		t.Skip("Skipping test in short mode.")
 	}
 	comp, tsPoints := CreateLinearTSPoints(t)
 	arimaCfp, err := NewArimaR(comp, time.Minute, 1*time.Minute, 20*time.Minute, 20.5)
@@ -94,7 +94,7 @@ func TestPredictLinearData0percFail(t *testing.T) {
 
 func TestPredictLinearData50percFail(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping test in short mode.")
+		t.Skip("Skipping test in short mode.")
 	}
 	comp, tsPoints := CreateLinearTSPoints(t)
 	arimaCfp, err := NewArimaR(comp, time.Minute, 1*time.Minute, 20*time.Minute, 20)
@@ -121,7 +121,7 @@ func TestPredictLinearData50percFail(t *testing.T) {
 
 func TestPredictLinearData100percFail(t *testing.T) {
 	if testing.Short() {
-		t.Skip("skipping test in short mode.")
+		t.Skip("Skipping test in short mode.")
 	}
 	comp, tsPoints := CreateLinearTSPoints(t)
 	arimaCfp, err := NewArimaR(comp, time.Minute, 2*time.Minute, 20*time.Minute, 20)
@@ -147,41 +147,47 @@ func TestPredictLinearData100percFail(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	// uses a sensible default on windows (tcp/http) and linux/osx (socket)
-	pool, err := dockertest.NewPool("")
-	if err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
-	}
-
-	// pulls an image, creates a container based on it and runs it
-	resource, err := pool.Run("teeratpitakrat/docker-r-hora", "latest", nil)
-	if err != nil {
-		log.Fatalf("Could not start resource: %s", err)
-	}
-
-	viper.Set("rserve.hostname", "localhost")
-	viper.Set("rserve.port", resource.GetPort("6311/tcp"))
-	time.Sleep(1 * time.Second)
-
-	// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
-	if err := pool.Retry(func() error {
-		var err error
-		//db, err = sql.Open("mysql", fmt.Sprintf("root:secret@(localhost:%s)/mysql", resource.GetPort("3306/tcp")))
-		_, err = rbridge.GetRSession("test")
+	if testing.Short() {
+		// TODO: skip test in short mode
+		code := m.Run()
+		os.Exit(code)
+	} else {
+		// uses a sensible default on windows (tcp/http) and linux/osx (socket)
+		pool, err := dockertest.NewPool("")
 		if err != nil {
-			return err
+			log.Fatalf("Could not connect to docker: %s", err)
 		}
-		return nil
-	}); err != nil {
-		log.Fatalf("Could not connect to docker-r-hora: %s", err)
+
+		// pulls an image, creates a container based on it and runs it
+		resource, err := pool.Run("teeratpitakrat/docker-r-hora", "latest", nil)
+		if err != nil {
+			log.Fatalf("Could not start resource: %s", err)
+		}
+
+		viper.Set("rserve.hostname", "localhost")
+		viper.Set("rserve.port", resource.GetPort("6311/tcp"))
+		time.Sleep(1 * time.Second)
+
+		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+		if err := pool.Retry(func() error {
+			var err error
+			//db, err = sql.Open("mysql", fmt.Sprintf("root:secret@(localhost:%s)/mysql", resource.GetPort("3306/tcp")))
+			_, err = rbridge.GetRSession("test")
+			if err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			log.Fatalf("Could not connect to docker-r-hora: %s", err)
+		}
+
+		code := m.Run()
+
+		// You can't defer this because os.Exit doesn't care for defer
+		if err := pool.Purge(resource); err != nil {
+			log.Fatalf("Could not purge resource: %s", err)
+		}
+
+		os.Exit(code)
 	}
-
-	code := m.Run()
-
-	// You can't defer this because os.Exit doesn't care for defer
-	if err := pool.Purge(resource); err != nil {
-		log.Fatalf("Could not purge resource: %s", err)
-	}
-
-	os.Exit(code)
 }
