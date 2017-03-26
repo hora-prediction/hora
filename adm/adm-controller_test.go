@@ -57,6 +57,7 @@ func TestRestApi(t *testing.T) {
 
 	refModel := CreateSmallADM(t)
 	go func() {
+		time.Sleep(500 * time.Millisecond)
 		// Update ADM via REST API
 		data := url.Values{}
 		data.Set("adm", refModel.String())
