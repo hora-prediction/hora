@@ -15,24 +15,24 @@ import (
 
 func main() {
 	// Read configurations
-	log.Print("Reading configuration")
+	log.Println("Reading configuration")
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.SetConfigType("toml")
 	viper.AddConfigPath(".")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		log.Print("Fatal error config file: %s \n", err)
+		log.Println("Fatal error config file: %s \n", err)
 	}
 
 	viper.SetEnvPrefix("hora") // will be uppercased automatically
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Read adm before continue
-	admCh := adm.NewReader()
-	log.Print("Waiting for ADM")
-	m := <-admCh
-	log.Print("Waiting for ADM done")
+	// Read first ADM before continue
+	admController := adm.NewController()
+	log.Println("Waiting for ADM")
+	m := <-admController.AdmCh
+	log.Println("Waiting for ADM done")
 
 	// Creating CFPs
 	cfpController, cfpResultCh := cfp.NewController(m)
@@ -40,7 +40,7 @@ func main() {
 	// Creating FPM
 	f, fpmResultCh, err := fpm.NewBayesNetR(m)
 	if err != nil {
-		log.Print("Error creating FPM", err)
+		log.Println("Error creating FPM", err)
 	}
 
 	resultWriter, err := resultio.New(
@@ -49,16 +49,16 @@ func main() {
 		viper.GetString("influxdb.password"),
 	)
 	if err != nil {
-		log.Print(err)
+		log.Println(err)
 	}
 
 	go func() {
 		for {
-			m := <-admCh
-			log.Print("Updating ADM")
+			m := <-admController.AdmCh
+			log.Println("Updating ADM")
 			cfpController.UpdateADM(m)
 			f.UpdateAdm(m)
-			log.Print("Updating ADM done")
+			log.Println("Updating ADM done")
 		}
 	}()
 
@@ -93,7 +93,7 @@ func main() {
 	for {
 		monDat, ok := <-monDatCh
 		if !ok {
-			log.Print("Monitoring data channel closed. Terminating")
+			log.Println("Monitoring data channel closed. Terminating")
 			break
 		}
 		cfpController.AddMonDat(monDat)

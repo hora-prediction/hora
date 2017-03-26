@@ -6,7 +6,7 @@ import (
 
 type Controller struct {
 	m           ADM
-	admCh       chan ADM
+	AdmCh       chan ADM
 	fileWatcher FileWatcher
 	restApi     RestApi
 }
@@ -14,7 +14,7 @@ type Controller struct {
 func NewController() Controller {
 	controller := Controller{
 		m:           ADM{},
-		admCh:       make(chan ADM, 2),
+		AdmCh:       make(chan ADM, 2),
 		fileWatcher: NewFileWatcher(),
 		restApi:     NewRestApi(),
 	}
@@ -39,13 +39,13 @@ func (c *Controller) Start() {
 				if viper.GetBool("adm.restapi.enabled") {
 					c.restApi.UpdateADM(newModel)
 				}
-				c.admCh <- newModel
+				c.AdmCh <- newModel
 			case newModel := <-c.restApi.admCh:
 				c.restApi.UpdateADM(newModel)
 				if viper.GetBool("adm.filewatcher.enabled") {
 					c.fileWatcher.UpdateADM(newModel)
 				}
-				c.admCh <- newModel
+				c.AdmCh <- newModel
 			}
 		}
 	}()
