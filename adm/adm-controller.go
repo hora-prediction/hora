@@ -11,9 +11,10 @@ type Controller struct {
 	restApi     RestApi
 }
 
-func NewController() <-chan ADM {
+func NewController() Controller {
 	controller := Controller{
 		m:           ADM{},
+		admCh:       make(chan ADM, 2),
 		fileWatcher: NewFileWatcher(),
 		restApi:     NewRestApi(),
 	}
@@ -27,7 +28,7 @@ func NewController() <-chan ADM {
 
 	controller.Start()
 
-	return controller.admCh
+	return controller
 }
 
 func (c *Controller) Start() {
@@ -35,10 +36,15 @@ func (c *Controller) Start() {
 		for {
 			select {
 			case newModel := <-c.fileWatcher.admCh:
-				c.restApi.UpdateADM(newModel)
+				if viper.GetBool("adm.restapi.enabled") {
+					c.restApi.UpdateADM(newModel)
+				}
 				c.admCh <- newModel
 			case newModel := <-c.restApi.admCh:
-				c.fileWatcher.UpdateADM(newModel)
+				c.restApi.UpdateADM(newModel)
+				if viper.GetBool("adm.filewatcher.enabled") {
+					c.fileWatcher.UpdateADM(newModel)
+				}
 				c.admCh <- newModel
 			}
 		}

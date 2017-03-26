@@ -27,7 +27,11 @@ func TestRestApiEmptyADM(t *testing.T) {
 	r := NewRestApi()
 
 	port := viper.GetString("adm.restapi.port")
-	req, err := http.NewRequest("GET", "http://localhost:"+port, nil)
+	req, err := http.NewRequest(
+		"GET",
+		"http://localhost:"+port+"/adm",
+		nil,
+	)
 	if err != nil {
 		log.Print(err)
 	}

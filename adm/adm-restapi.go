@@ -100,6 +100,7 @@ func (r *RestApi) postHandler(w http.ResponseWriter, req *http.Request) {
 	}
 	// TODO: validate adm
 	if len(m) == 0 {
+		log.Println("Error: received an empty ADM")
 		w.Write([]byte("Error: Empty ADM:\n" + mjson))
 		return
 	}
