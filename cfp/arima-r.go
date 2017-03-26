@@ -2,6 +2,7 @@ package cfp
 
 import (
 	"container/ring"
+	"errors"
 	"log"
 	"strconv"
 	"time"
@@ -74,7 +75,7 @@ func (a *ArimaR) Predict() (Result, error) {
 	cmd += "))"
 	_, err := a.rSession.Eval(cmd)
 	if err != nil {
-		log.Print("Error: ", err)
+		log.Printf("Cannot evaluate R with cmd=%s\n%s", cmd, err)
 		return result, err
 	}
 
@@ -85,7 +86,7 @@ func (a *ArimaR) Predict() (Result, error) {
 	cmd += ")"
 	ret, err := a.rSession.Eval(cmd)
 	if err != nil {
-		log.Print("Error: ", err)
+		log.Printf("Cannot evaluate R with cmd=%s\n%s", cmd, err)
 		return result, err
 	}
 	res := ret.(map[string]interface{})
@@ -104,6 +105,9 @@ func (a *ArimaR) Predict() (Result, error) {
 	upper := upperArray[len(upperArray)-1]
 	sd := (upper - lower) / 3.92
 
+	if sd <= 0 {
+		return result, errors.New("Standard deviation <= 0")
+	}
 	distribution := gaussian.NewGaussian(mean, sd*sd)
 	failProb := 1 - distribution.Cdf(a.threshold)
 
