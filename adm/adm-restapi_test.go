@@ -70,7 +70,7 @@ func TestRestApiUpdateADM(t *testing.T) {
 	port := viper.GetString("adm.restapi.port")
 	req, err := http.NewRequest(
 		"POST",
-		"http://localhost:"+port,
+		"http://localhost:"+port+"/adm",
 		bytes.NewBufferString(data.Encode()),
 	)
 	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
