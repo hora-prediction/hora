@@ -1,0 +1,81 @@
+{
+  "responsetime_edge_uq38n_protected_java_lang_String_com_netflix_recipes_rss_hystrix_GetRSSCommand_run__": {
+    "caller": {
+      "name": "protected java.lang.String com.netflix.recipes.rss.hystrix.GetRSSCommand.run()",
+      "hostname": "edge-uq38n",
+      "type": "responsetime",
+      "called": 100
+    },
+    "dependencies": {
+      "responsetime_middletier_64bqq_private_com_netflix_recipes_rss_RSS_com_netflix_recipes_rss_manager_RSSManager_fetchRSSFeed_java_lang_String_": {
+        "callee": {
+          "name": "private com.netflix.recipes.rss.RSS com.netflix.recipes.rss.manager.RSSManager.fetchRSSFeed(java.lang.String)",
+          "hostname": "middletier-64bqq",
+          "type": "responsetime",
+          "called": 50
+        },
+        "weight": 0.5,
+        "called": 50
+      },
+      "responsetime_middletier_64bqq_public_java_util_List_com_netflix_recipes_rss_impl_CassandraStoreImpl_getSubscribedUrls_java_lang_String_": {
+        "callee": {
+          "name": "public java.util.List com.netflix.recipes.rss.impl.CassandraStoreImpl.getSubscribedUrls(java.lang.String)",
+          "hostname": "middletier-64bqq",
+          "type": "responsetime",
+          "called": 50
+        },
+        "weight": 0.5,
+        "called": 50
+      }
+    }
+  },
+  "responsetime_middletier_64bqq_private_com_netflix_recipes_rss_RSS_com_netflix_recipes_rss_manager_RSSManager_fetchRSSFeed_java_lang_String_": {
+    "caller": {
+      "name": "private com.netflix.recipes.rss.RSS com.netflix.recipes.rss.manager.RSSManager.fetchRSSFeed(java.lang.String)",
+      "hostname": "middletier-64bqq",
+      "type": "responsetime",
+      "called": 50
+    },
+    "dependencies": {
+      "responsetime_middletier_64bqq_public_java_util_List_com_netflix_recipes_rss_impl_CassandraStoreImpl_getSubscribedUrls_java_lang_String_": {
+        "callee": {
+          "name": "public com.sun.jersey.api.client.ClientResponse com.sun.jersey.client.apache4.ApacheHttpClient4Handler.handle(com.sun.jersey.api.client.ClientRequest)",
+          "hostname": "middletier-64bqq",
+          "type": "responsetime",
+          "called": 120
+        },
+        "weight": 1,
+        "called": 60
+      }
+    }
+  },
+  "responsetime_middletier_64bqq_public_com_sun_jersey_api_client_ClientResponse_com_sun_jersey_client_apache4_ApacheHttpClient4Handler_handle_com_sun_jersey_api_client_ClientRequest_": {
+    "caller": {
+      "name": "public com.sun.jersey.api.client.ClientResponse com.sun.jersey.client.apache4.ApacheHttpClient4Handler.handle(com.sun.jersey.api.client.ClientRequest)",
+      "hostname": "middletier-64bqq",
+      "type": "responsetime",
+      "called": 120
+    },
+    "dependencies": {}
+  },
+  "responsetime_middletier_64bqq_public_java_util_List_com_netflix_recipes_rss_impl_CassandraStoreImpl_getSubscribedUrls_java_lang_String_": {
+    "caller": {
+      "name": "public java.util.List com.netflix.recipes.rss.impl.CassandraStoreImpl.getSubscribedUrls(java.lang.String)",
+      "hostname": "middletier-64bqq",
+      "type": "responsetime",
+      "called": 50
+    },
+    "dependencies": {
+      "responsetime_middletier_64bqq_public_java_util_List_com_netflix_recipes_rss_impl_CassandraStoreImpl_getSubscribedUrls_java_lang_String_": {
+        "callee": {
+          "name": "public com.sun.jersey.api.client.ClientResponse com.sun.jersey.client.apache4.ApacheHttpClient4Handler.handle(com.sun.jersey.api.client.ClientRequest)",
+          "hostname": "middletier-64bqq",
+          "type": "responsetime",
+          "called": 120
+        },
+        "weight": 1,
+        "called": 60
+      }
+    }
+  }
+}

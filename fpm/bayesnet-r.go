@@ -57,17 +57,12 @@ func (f *BayesNetR) createBayesNet() error {
 
 	// Create structure
 	cmd := "net <- model2network(\""
-	for _, v := range f.admodel {
-		cmd += "[" + v.Component.UniqName()
-		switch {
-		case len(v.Dependencies) == 1:
-			cmd += "|" + v.Dependencies[0].Component.UniqName()
-		case len(v.Dependencies) > 1:
-			cmd += "|" + v.Dependencies[0].Component.UniqName()
-			for i := 1; i < len(v.Dependencies); i++ {
-				cmd += ":" + v.Dependencies[i].Component.UniqName()
-			}
+	for callerUniqName, depInfo := range f.admodel {
+		cmd += "[" + callerUniqName
+		for _, dep := range depInfo.Dependencies {
+			cmd += dep.Callee.UniqName() + ":"
 		}
+		cmd = strings.TrimSuffix(cmd, ":") // Remove last colon
 		cmd += "]"
 	}
 	cmd += "\")"
@@ -79,12 +74,12 @@ func (f *BayesNetR) createBayesNet() error {
 
 	// Create CPTs
 	states := "c(\"ok\",\"fail\")"
-	for _, v := range f.admodel {
-		nDeps := len(v.Dependencies)
+	for callerUniqName, depInfo := range f.admodel {
+		nDeps := len(depInfo.Dependencies)
 		cmd := ""
 		if nDeps == 0 {
-			cfpResult, ok := f.cfpResults[v.Component]
-			cmd = "cpt_" + v.Component.UniqName() + " <- matrix(c("
+			cfpResult, ok := f.cfpResults[depInfo.Caller]
+			cmd = "cpt_" + callerUniqName + " <- matrix(c("
 			if ok {
 				cmd += strconv.FormatFloat(1-cfpResult.FailProb, 'f', 6, 64) + ", "
 				cmd += strconv.FormatFloat(cfpResult.FailProb, 'f', 6, 64)
@@ -94,21 +89,27 @@ func (f *BayesNetR) createBayesNet() error {
 			cmd += "), ncol=2, dimnames=list(NULL, " + states + "))"
 		} else {
 			size := int(math.Pow(2, float64(nDeps)))
-			// Initial self prob when all components are ok
-			cfpResult, ok := f.cfpResults[v.Component]
+			// Initial self prob when all dependent components are ok
+			cfpResult, ok := f.cfpResults[depInfo.Caller]
 			if ok {
-				cmd = "cpt_" + v.Component.UniqName() + " <- c("
+				cmd = "cpt_" + depInfo.Caller.UniqName() + " <- c("
 				cmd += strconv.FormatFloat(1-cfpResult.FailProb, 'f', 6, 64) + ", "
 				cmd += strconv.FormatFloat(cfpResult.FailProb, 'f', 6, 64)
 			} else {
-				cmd = "cpt_" + v.Component.UniqName() + " <- c(1.0, 0.0"
+				cmd = "cpt_" + depInfo.Caller.UniqName() + " <- c(1.0, 0.0"
 			}
-			// The rest
+			// Prob when some dependent components are failing
+			depArray := make([]*adm.Dependency, nDeps, nDeps)
+			depIndex := 0
+			for _, dep := range depInfo.Dependencies {
+				depArray[depIndex] = dep
+				depIndex++
+			}
 			for pState := 1; pState < size; pState++ {
 				failProb := 0.0
 				for i, mask := 0, 1; i < nDeps; i, mask = i+1, mask<<1 {
 					if pState&mask > 0 {
-						failProb += v.Dependencies[nDeps-i-1].Weight
+						failProb += depArray[nDeps-i-1].Weight
 						if failProb > 1.0 {
 							failProb = 1.0
 						}
@@ -118,10 +119,10 @@ func (f *BayesNetR) createBayesNet() error {
 				cmd += ", " + strconv.FormatFloat(failProb, 'f', 6, 64)
 			}
 			cmd += "); "
-			cmd += "dim(cpt_" + v.Component.UniqName() + ") <- c(2" + strings.Repeat(", 2", nDeps) + "); "
-			cmd += "dimnames(cpt_" + v.Component.UniqName() + ") <- list(\"" + v.Component.UniqName() + "\"=" + states
-			for _, d := range v.Dependencies {
-				cmd += ", \"" + d.Component.UniqName() + "\"=" + states
+			cmd += "dim(cpt_" + callerUniqName + ") <- c(2" + strings.Repeat(", 2", nDeps) + "); "
+			cmd += "dimnames(cpt_" + callerUniqName + ") <- list(\"" + callerUniqName + "\"=" + states
+			for _, dep := range depInfo.Dependencies {
+				cmd += ", \"" + dep.Callee.UniqName() + "\"=" + states
 			}
 			cmd += ")"
 		}
@@ -134,12 +135,11 @@ func (f *BayesNetR) createBayesNet() error {
 
 	// Create BN
 	cmd = "net.disc <- custom.fit(net,dist=list("
-	for _, v := range f.admodel {
-		cName := v.Component.UniqName()
+	for callerUniqName := range f.admodel {
 		if !strings.HasSuffix(cmd, "(") {
 			cmd += ", "
 		}
-		cmd += cName + "=" + "cpt_" + cName
+		cmd += callerUniqName + "=" + "cpt_" + callerUniqName
 	}
 	cmd += "))"
 	_, err = f.rSession.Eval(cmd)
@@ -164,13 +164,13 @@ func (f *BayesNetR) predict() (Result, error) {
 	result.Predtime = f.lastCfpResult.Predtime
 	result.FailProbs = make(map[adm.Component]float64)
 	for _, v := range f.admodel {
-		cmd := "cpquery(net.disc, (" + v.Component.UniqName() + " == \"fail\"), TRUE)"
+		cmd := "cpquery(net.disc, (" + v.Caller.UniqName() + " == \"fail\"), TRUE)"
 		ret, err := f.rSession.Eval(cmd)
 		if err != nil {
 			log.Print("Error: ", err)
 			return result, err
 		}
-		result.FailProbs[v.Component] = ret.(float64)
+		result.FailProbs[v.Caller] = ret.(float64)
 	}
 	return result, nil
 }

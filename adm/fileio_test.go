@@ -9,35 +9,11 @@ import (
 
 func TestReadWriteFile(t *testing.T) {
 	// Export
-	m := New()
-	compA := Component{"method1()", "host-1", "responsetime", 0}
-	compB := Component{"method2(param)", "host-2", "responsetime", 0}
-	compC := Component{"method3()", "host-3", "responsetime", 0}
-	compD := Component{"method4(param1, param2)", "host-4", "responsetime", 0}
-
-	depA := DependencyInfo{compA, make([]Dependency, 2, 2)}
-	depA.Component = compA
-	depA.Dependencies[0] = Dependency{compB, 0.5, 0}
-	depA.Dependencies[1] = Dependency{compC, 0.5, 0}
-	m[compA.UniqName()] = &depA
-
-	depB := DependencyInfo{compB, make([]Dependency, 1, 1)}
-	depB.Component = compB
-	depB.Dependencies[0] = Dependency{compD, 1, 0}
-	m[compB.UniqName()] = &depB
-
-	depC := DependencyInfo{compC, make([]Dependency, 1, 1)}
-	depC.Component = compC
-	depC.Dependencies[0] = Dependency{compD, 1, 0}
-	m[compC.UniqName()] = &depC
-
-	depD := DependencyInfo{}
-	depD.Component = compD
-	m[compD.UniqName()] = &depD
+	m := CreateSmallADM(t)
 
 	dir, err := ioutil.TempDir("", "adm")
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Error creating temp dir", err)
 	}
 	defer os.RemoveAll(dir) // clean up
 
@@ -46,14 +22,14 @@ func TestReadWriteFile(t *testing.T) {
 	// Import
 	mRead, err := ReadFile(dir + "/m.json")
 	if err != nil {
-		t.Error(err)
+		t.Error("Error importing ADM", err)
 	}
 	if len(m) != len(mRead) {
-		t.Error("Lengths of exported and imported ADMs are equal")
+		t.Error("Lengths of exported and imported ADMs are not equal")
 	}
 	for k, v := range m {
-		if v.Component != mRead[k].Component {
-			t.Error("Expected %v but got %v", v.Component, mRead[k].Component)
+		if v.Caller != mRead[k].Caller {
+			t.Error("Expected %v but got %v", v.Caller, mRead[k].Caller)
 		}
 		if len(v.Dependencies) != len(mRead[k].Dependencies) {
 			t.Error("Expected %v dependencies but got %v", len(v.Dependencies), len(mRead[k].Dependencies))

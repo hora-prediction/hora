@@ -6,43 +6,13 @@ import (
 
 	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/cfp"
-	"github.com/teeratpitakrat/hora/rbridge"
 )
 
 func TestCreate(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test in short mode.")
 	}
-	m := make(adm.ADM)
-
-	compA := adm.Component{"A", "host1", "responsetime", 0}
-	compB := adm.Component{"B", "host2", "responsetime", 0}
-	compC := adm.Component{"C", "host3", "responsetime", 0}
-	compD := adm.Component{"D", "host4", "responsetime", 0}
-
-	depA := adm.DependencyInfo{compA, make([]adm.Dependency, 2, 2)}
-	depA.Component = compA
-	depA.Dependencies[0] = adm.Dependency{compB, 0.5, 0}
-	depA.Dependencies[1] = adm.Dependency{compC, 0.5, 0}
-	m[compA.UniqName()] = &depA
-
-	depB := adm.DependencyInfo{compB, make([]adm.Dependency, 1, 1)}
-	depB.Component = compB
-	depB.Dependencies[0] = adm.Dependency{compD, 1, 0}
-	m[compB.UniqName()] = &depB
-
-	depC := adm.DependencyInfo{compC, make([]adm.Dependency, 1, 1)}
-	depC.Component = compC
-	depC.Dependencies[0] = adm.Dependency{compD, 1, 0}
-	m[compC.UniqName()] = &depC
-
-	depD := adm.DependencyInfo{}
-	depD.Component = compD
-	m[compD.UniqName()] = &depD
-
-	// Configure R bridge
-	rbridge.SetHostname("localhost")
-	rbridge.SetPort(6311)
+	m := adm.CreateSmallADM(t)
 
 	f, fpmResultCh, err := NewBayesNetR(m)
 	if err != nil {

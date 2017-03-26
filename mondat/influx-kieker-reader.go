@@ -58,7 +58,7 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 		// TODO: check if influxdb has monitoring data of this component
 		// Get first and last timestamp of this component in influxdb
 		var curtimestamp, firsttimestamp, lasttimestamp time.Time
-		firsttimestamp, lasttimestamp = r.getFirstAndLastTimestamp(clnt, d.Component)
+		firsttimestamp, lasttimestamp = r.getFirstAndLastTimestamp(clnt, d.Caller)
 		if firsttimestamp.IsZero() && lasttimestamp.IsZero() {
 			// Cannot find monitoring data. skip to the next component
 			continue
@@ -76,8 +76,8 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 		for {
 			aggregation := viper.GetString("cfp.responsetime.aggregation")
 			aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
-			//cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
-			cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
+			//cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Caller.Hostname + "' and \"operationSignature\" = '" + d.Caller.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
+			cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Caller.Hostname + "' and \"operationSignature\" = '" + d.Caller.Name + "' and time > " + strconv.FormatInt(curtimestamp.UnixNano(), 10) + " and time <= " + strconv.FormatInt(lasttimestamp.UnixNano(), 10) + " group by time(1m)"
 			q := client.Query{
 				Command:  cmd,
 				Database: r.KiekerDb,
@@ -108,10 +108,10 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 				}
 				if row[1] != nil {
 					val, _ := row[1].(json.Number).Float64()
-					point := TSPoint{d.Component, t, val}
+					point := TSPoint{d.Caller, t, val}
 					tsPoints = append(tsPoints, point)
 				} else {
-					point := TSPoint{d.Component, t, 0}
+					point := TSPoint{d.Caller, t, 0}
 					tsPoints = append(tsPoints, point)
 				}
 				// preventing querying the same record forever
@@ -133,7 +133,7 @@ func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {
 }
 
 func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
-	// Wait until a full minute has passed
+	// Wait until a new minute has started
 	// TODO: wait according to r.Interval
 	remainingSeconds := time.Duration((60 - time.Now().Second()) * 1e9)
 	log.Print("Waiting ", remainingSeconds)
@@ -148,13 +148,13 @@ func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
 			var q client.Query
 			var cmd string
 			// Query for different types of components
-			switch d.Component.Type {
+			switch d.Caller.Type {
 			case "responsetime":
 				aggregation := viper.GetString("cfp.responsetime.aggregation")
 				aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
 				// TODO: change group by time according to r.Interval
-				//cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
-				cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Component.Hostname + "' and \"operationSignature\" = '" + d.Component.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
+				//cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from operationExecution where \"hostname\" = '" + d.Caller.Hostname + "' and \"operationSignature\" = '" + d.Caller.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(" + r.Interval.String() + ")"
+				cmd := "select " + aggregation + "(\"responseTime\"," + aggregationvalue + ") from OperationExecution where \"hostname\" = '" + d.Caller.Hostname + "' and \"operationSignature\" = '" + d.Caller.Name + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
 				q = client.Query{
 					Command:  cmd,
 					Database: r.KiekerDb,
@@ -162,7 +162,7 @@ func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
 			case "cpu":
 				aggregation := viper.GetString("cfp.cpu.aggregation")
 				aggregationvalue := viper.GetString("cfp.cpu.aggregationvalue")
-				cmd := "select " + aggregation + "(\"value\"," + aggregationvalue + ") from \"cpu/usage_rate\" where \"pod_name\" = '" + d.Component.Hostname + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
+				cmd := "select " + aggregation + "(\"value\"," + aggregationvalue + ") from \"cpu/usage_rate\" where \"pod_name\" = '" + d.Caller.Hostname + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
 				q = client.Query{
 					Command:  cmd,
 					Database: r.K8sDb,
@@ -170,7 +170,7 @@ func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
 			case "memory":
 				aggregation := viper.GetString("cfp.memory.aggregation")
 				aggregationvalue := viper.GetString("cfp.memory.aggregationvalue")
-				cmd := "select " + aggregation + "(\"value\"," + aggregationvalue + ") from \"cpu/usage_rate\" where \"pod_name\" = '" + d.Component.Hostname + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
+				cmd := "select " + aggregation + "(\"value\"," + aggregationvalue + ") from \"cpu/usage_rate\" where \"pod_name\" = '" + d.Caller.Hostname + "' and time >= " + strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10) + " and time < " + strconv.FormatInt(curtime.UnixNano(), 10) + " group by time(1m)"
 				q = client.Query{
 					Command:  cmd,
 					Database: r.K8sDb,
@@ -199,7 +199,7 @@ func (r *InfluxKiekerReader) readRealtime(clnt client.Client, ch chan TSPoint) {
 
 				if row[1] != nil {
 					val, _ := row[1].(json.Number).Float64()
-					point := TSPoint{d.Component, t, val}
+					point := TSPoint{d.Caller, t, val}
 					ch <- point
 				}
 			}

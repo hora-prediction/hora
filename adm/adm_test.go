@@ -1,71 +1,112 @@
 package adm
 
 import (
+	"io/ioutil"
+	"math"
+	"strings"
 	"testing"
 )
 
-func TestADMSmall(t *testing.T) {
-	m := New()
+func TestSmallADMUniqName(t *testing.T) {
+	m := CreateSmallADM(t)
+	if len(m) != 4 {
+		t.Error("Expected 4 components but got", len(m))
+	}
 
-	compA := Component{"method1()", "host-1", "responsetime", 0}
-	compB := Component{"method2(param)", "host-2", "responsetime", 0}
-	compC := Component{"method3()", "host-3", "responsetime", 0}
-	compD := Component{"method4(param1, param2)", "host-4", "responsetime", 0}
+	compNames := []string{
+		"responsetime_edge_uq38n_protected_java_lang_String_com_netflix_recipes_rss_hystrix_GetRSSCommand_run__",
+		"responsetime_middletier_64bqq_public_java_util_List_com_netflix_recipes_rss_impl_CassandraStoreImpl_getSubscribedUrls_java_lang_String_",
+		"responsetime_middletier_64bqq_private_com_netflix_recipes_rss_RSS_com_netflix_recipes_rss_manager_RSSManager_fetchRSSFeed_java_lang_String_",
+		"responsetime_middletier_64bqq_public_com_sun_jersey_api_client_ClientResponse_com_sun_jersey_client_apache4_ApacheHttpClient4Handler_handle_com_sun_jersey_api_client_ClientRequest_",
+	}
 
-	depA := DependencyInfo{compA, make([]Dependency, 2, 2)}
-	depA.Component = compA
-	depA.Dependencies[0] = Dependency{compB, 0.5, 0}
-	depA.Dependencies[1] = Dependency{compC, 0.5, 0}
-	m[compA.UniqName()] = &depA
-
-	depB := DependencyInfo{compB, make([]Dependency, 1, 1)}
-	depB.Component = compB
-	depB.Dependencies[0] = Dependency{compD, 1, 0}
-	m[compB.UniqName()] = &depB
-
-	depC := DependencyInfo{compC, make([]Dependency, 1, 1)}
-	depC.Component = compC
-	depC.Dependencies[0] = Dependency{compD, 1, 0}
-	m[compC.UniqName()] = &depC
-
-	depD := DependencyInfo{}
-	depD.Component = compD
-	m[compD.UniqName()] = &depD
-
-	for c, v := range m {
-		switch c {
-		case compA.UniqName():
-			expected := 2
-			if len(v.Dependencies) != expected {
-				t.Error("Expected: ", expected, " but got ", len(v.Dependencies))
-			}
-			if v.Dependencies[0].Component.UniqName() != "responsetime_host_2_method2_param_" || v.Dependencies[0].Weight != 0.5 {
-				t.Error("Wrong value")
-			}
-			if v.Dependencies[1].Component.UniqName() != "responsetime_host_3_method3__" || v.Dependencies[1].Weight != 0.5 {
-				t.Error("Wrong value")
-			}
-		case compB.UniqName():
-			expected := 1
-			if len(v.Dependencies) != expected {
-				t.Error("Expected: ", expected, " but got ", len(v.Dependencies))
-			}
-			if v.Dependencies[0].Component.UniqName() != "responsetime_host_4_method4_param1__param2_" || v.Dependencies[0].Weight != 1 {
-				t.Error("Wrong value")
-			}
-		case compC.UniqName():
-			expected := 1
-			if len(v.Dependencies) != expected {
-				t.Error("Expected: ", expected, " but got ", len(v.Dependencies))
-			}
-			if v.Dependencies[0].Component.UniqName() != "responsetime_host_4_method4_param1__param2_" || v.Dependencies[0].Weight != 1 {
-				t.Error("Wrong value")
-			}
-		case compD.UniqName():
-			expected := 0
-			if len(v.Dependencies) != expected {
-				t.Error("Expected: ", expected, " but got ", len(v.Dependencies))
-			}
+	for _, name := range compNames {
+		if _, ok := m[name]; !ok {
+			t.Error("Cannot find component: ", name)
 		}
 	}
+}
+
+func TestSmallADMString(t *testing.T) {
+	m := CreateSmallADM(t)
+	actual := m.String()
+
+	read, err := ioutil.ReadFile(SmallADMFilename)
+	if err != nil {
+		t.Error("Cannot read golden file", err)
+	}
+	expected := string(read)
+
+	if actual != expected {
+		errFilename := strings.Replace(SmallADMFilename, ".txt", "-string-actual.txt", -1)
+		ioutil.WriteFile(errFilename, []byte(actual), 0644)
+		t.Error("Error marshalling ADM. Actual output is written to " + errFilename + ". Use diff tool to compare them.")
+	}
+}
+
+func TestSmallADMComputeProb(t *testing.T) {
+	m := CreateSmallADM(t)
+	m.ComputeProb()
+	actual := m.String()
+
+	read, err := ioutil.ReadFile(SmallADMFilename)
+	if err != nil {
+		t.Error("Cannot read golden file", err)
+	}
+	expected := string(read)
+
+	if actual != expected {
+		errFilename := strings.Replace(SmallADMFilename, ".txt", "-prob-actual.txt", -1)
+		ioutil.WriteFile(errFilename, []byte(actual), 0644)
+		t.Error("Error computing probabilities in ADM. Actual output is written to " + errFilename + ". Use diff tool to compare them.")
+	}
+}
+
+func TestSmallADMIncrementCount(t *testing.T) {
+	m := CreateSmallADM(t)
+	callerUniqName := "responsetime_edge_uq38n_protected_java_lang_String_com_netflix_recipes_rss_hystrix_GetRSSCommand_run__"
+	calleeUniqName := "responsetime_middletier_64bqq_public_java_util_List_com_netflix_recipes_rss_impl_CassandraStoreImpl_getSubscribedUrls_java_lang_String_"
+	caller := m[callerUniqName].Caller
+	callee := m[calleeUniqName].Caller
+
+	// Old counts
+	oldTotalCount := callee.Called
+	depInfo := m[callerUniqName]
+	oldDepCount := depInfo.Dependencies[calleeUniqName].Called
+
+	m.IncrementCount(caller, callee)
+
+	// New counts
+	callee = m[calleeUniqName].Caller
+	newTotalCount := callee.Called
+	depInfo = m[callerUniqName]
+	newDepCount := depInfo.Dependencies[calleeUniqName].Called
+
+	if newTotalCount != oldTotalCount+1 {
+		t.Error("Expected total count of 51 but got", newTotalCount)
+	}
+	if newDepCount != oldDepCount+1 {
+		t.Error("Expected dep count of 51 but got", newDepCount)
+	}
+}
+
+func TestSmallADMWeight(t *testing.T) {
+	m := CreateSmallADM(t)
+	compA := Component{
+		Name:     "protected java.lang.String com.netflix.recipes.rss.hystrix.GetRSSCommand.run()",
+		Hostname: "edge-uq38n",
+		Type:     "responsetime",
+		Called:   100}
+	compB := Component{
+		Name:     "public java.util.List com.netflix.recipes.rss.impl.CassandraStoreImpl.getSubscribedUrls(java.lang.String)",
+		Hostname: "middletier-64bqq",
+		Type:     "responsetime",
+		Called:   50}
+	weightAB := m.Weight(compA, compB)
+	if math.Abs(weightAB-0.5) > 1e-12 {
+		t.Error("Expected 0.5 but got", weightAB)
+	}
+}
+
+func TestSmallADMIsValid(t *testing.T) {
 }

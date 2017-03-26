@@ -9,8 +9,6 @@ func TestGetRSession(t *testing.T) {
 		t.Skip("skipping test in short mode.")
 	}
 
-	SetHostname("localhost")
-	SetPort(6311)
 	sessionA, err := GetRSession("A")
 	if err != nil {
 		t.Error("Error: ", err)
@@ -26,8 +24,6 @@ func TestGetRSession(t *testing.T) {
 		t.Error("Expected 5 but got", ret)
 	}
 
-	SetHostname("localhost")
-	SetPort(6311)
 	sessionB, err := GetRSession("B")
 	if err != nil {
 		t.Error("Error: ", err)

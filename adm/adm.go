@@ -1,7 +1,7 @@
 package adm
 
 import (
-	"strconv"
+	"encoding/json"
 	"strings"
 )
 
@@ -21,11 +21,7 @@ type Component struct {
 	Name     string `json:"name"`
 	Hostname string `json:"hostname"`
 	Type     string `json:"type"`
-	Called   int64  `json:"called"`
-}
-
-func New() ADM {
-	return make(ADM)
+	Called   int64  `json:"called"` // Counts how many times this component is called by all components
 }
 
 func (c *Component) UniqName() string {
@@ -34,57 +30,62 @@ func (c *Component) UniqName() string {
 }
 
 type Dependency struct {
-	Component Component `json:"component"`
-	Weight    float64   `json:"weight"`
-	Called    int64     `json:"called"`
+	Callee Component `json:"callee"`
+	Weight float64   `json:"weight"`
+	Called int64     `json:"called"` // Counts how many times this component is called by a specific component
 }
 
 type DependencyInfo struct {
-	Component    Component    `json:"component"`
-	Dependencies []Dependency `json:"dependencies"`
-}
-
-func NewDependency(c Component, w float64, called int64) *Dependency {
-	dep := Dependency{
-		Component: c,
-		Weight:    w,
-		Called:    called,
-	}
-	return &dep
-}
-
-func NewDependencyInfo(c Component) *DependencyInfo {
-	var deps []Dependency
-	di := DependencyInfo{
-		Component:    c,
-		Dependencies: deps,
-	}
-	return &di
+	Caller       Component              `json:"caller"`
+	Dependencies map[string]*Dependency `json:"dependencies"`
 }
 
 func (m *ADM) String() string {
-	var s string
-	s += "ADM:\n"
-	for k, v := range *m {
-		s += "  key: " + k + "\n"
-		s += "    Component: " + v.Component.UniqName() + " " + strconv.FormatInt(v.Component.Called, 10) + "\n"
-		for _, d := range v.Dependencies {
-			s += "      Dependency: " + d.Component.UniqName() + " " + strconv.FormatFloat(d.Weight, 'f', 2, 64) + " " + strconv.FormatInt(d.Called, 10) + "\n"
-		}
+	mjson, err := json.MarshalIndent(m, "", "  ")
+	if err != nil {
+		return err.Error()
 	}
-	return s
+	return string(mjson)
+}
+
+func (m *ADM) AddDependency(caller, callee Component) {
+}
+
+func (m *ADM) IncrementCount(caller, callee Component) {
+	if caller == callee {
+		return // Ignore recursion
+	}
+	// a nil caller indicates that the callee is an entrypoint
+	if &caller != nil {
+		// Increment count of callee called by this caller
+		depInfo := (*m)[caller.UniqName()]
+		dep := depInfo.Dependencies[callee.UniqName()]
+		dep.Called++
+	}
+	// Increment total count of callee called by all components
+	depInfo := (*m)[callee.UniqName()]
+	depInfo.Caller.Called++
 }
 
 func (m *ADM) ComputeProb() {
-	for _, di := range *m {
-		called := di.Component.Called
-		deps := di.Dependencies
-		for i, _ := range deps {
-			d := &di.Dependencies[i]
-			d.Weight = float64(d.Called) / float64(called)
-			if d.Weight > 1 {
-				d.Weight = 1
+	for _, depInfo := range *m {
+		caller := depInfo.Caller
+		for _, dep := range depInfo.Dependencies {
+			dep.Weight = float64(dep.Called) / float64(caller.Called)
+			if dep.Weight > 1 {
+				dep.Weight = 1
 			}
 		}
 	}
+}
+
+func (m *ADM) Weight(caller, callee Component) float64 {
+	depInfo := (*m)[caller.UniqName()]
+	dep := depInfo.Dependencies[callee.UniqName()]
+	return dep.Weight
+}
+
+func (m *ADM) IsValid() bool {
+	// TODO: ensure that ADM does not have cyclic dependency
+	return true
 }
