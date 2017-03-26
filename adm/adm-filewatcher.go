@@ -4,50 +4,59 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/spf13/viper"
 )
 
 type FileWatcher struct {
-	m     ADM
-	admCh chan ADM
+	filepath string
+	m        ADM
+	admCh    chan ADM
 }
 
 func NewFileWatcher() FileWatcher {
-	viper.SetDefault("adm.filewatcher.path", "/tmp/adm.json")
+	viper.SetDefault("adm.filewatcher.path", os.TempDir()+"/adm.json") // TODO: use OS-specific path separator
+	filepath := viper.GetString("adm.filewatcher.path")
 	fileWatcher := FileWatcher{
-		m:     ADM{},
-		admCh: make(chan ADM, 2),
+		filepath: filepath,
+		m:        ADM{},
+		admCh:    make(chan ADM, 2),
 	}
 
-	//filepath := viper.GetString("adm.filewatcher.path")
 	return fileWatcher
 }
 
-func (r *FileWatcher) UpdateADM(m ADM) {
-	r.m = m
+func (w *FileWatcher) UpdateADM(m ADM) {
+	w.m = m
+	w.Write()
 }
 
-func ReadFile(path string) (ADM, error) {
-	var m ADM
-	b, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Print("Error reading json file", err)
-		return nil, err
-	}
-	err = json.Unmarshal(b, &m)
-	return m, nil
+func (w *FileWatcher) Start() {
+	// TODO: use fsnotify
+	w.Read()
+	w.admCh <- w.m
 }
 
-func (m *ADM) WriteFile(path string) error {
-	b, err := json.Marshal(m)
+func (w *FileWatcher) Read() {
+	b, err := ioutil.ReadFile(w.filepath)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Error reading json file: %s", err)
+	}
+	err = json.Unmarshal(b, &w.m)
+	if err != nil {
+		log.Printf("Error parsing json: %s", err)
+	}
+}
+
+func (w *FileWatcher) Write() {
+	b, err := json.MarshalIndent(w.m, "", "  ")
+	if err != nil {
+		log.Printf("Error marshalling ADM: %s", err)
 	}
 
-	err = ioutil.WriteFile(path, b, 0644)
+	err = ioutil.WriteFile(w.filepath, b, 0644)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Error writing ADM to file: %s", err)
 	}
-	return nil
 }

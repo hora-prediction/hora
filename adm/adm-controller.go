@@ -19,9 +19,9 @@ func NewController() <-chan ADM {
 	}
 
 	if viper.GetBool("adm.filewatcher.enabled") {
+		controller.fileWatcher.Start()
 	}
 	if viper.GetBool("adm.restapi.enabled") {
-		controller.restApi = NewRestApi()
 		controller.restApi.Start()
 	}
 
