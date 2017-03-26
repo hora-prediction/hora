@@ -26,27 +26,34 @@ var htmlFooter = []byte(`
 </body></html>
 `)
 
-type NetReader struct {
-	admodel ADM
-	admCh   chan ADM
+type RestApi struct {
+	m     ADM
+	admCh chan ADM
 }
 
-func NewNetReader(m ADM, admCh chan ADM) NetReader {
+func NewRestApi() RestApi {
 	viper.SetDefault("webui.port", "8080")
 
-	netReader := NetReader{m, admCh}
-	return netReader
+	restApi := RestApi{
+		m:     ADM{},
+		admCh: make(chan ADM, 1),
+	}
+	return restApi
 }
 
-func (nr *NetReader) Serve() {
+func (r *RestApi) UpdateADM(m ADM) {
+	r.m = m
+}
+
+func (r *RestApi) Start() {
 	go func() {
 		log.Print("Starting ADM Web UI")
-		port := viper.GetString("webui.port")
-		r := mux.NewRouter()
-		r.HandleFunc("/adm", nr.handler).Methods("GET")
-		r.HandleFunc("/adm", nr.posthandler).Methods("POST")
+		port := viper.GetString("adm.restapi.port")
+		router := mux.NewRouter()
+		router.HandleFunc("/adm", r.getHandler).Methods("GET")
+		router.HandleFunc("/adm", r.postHandler).Methods("POST")
 		srv := &http.Server{
-			Handler: r,
+			Handler: router,
 			Addr:    ":" + port,
 			// Good practice: enforce timeouts for servers you create!
 			WriteTimeout: 15 * time.Second,
@@ -56,9 +63,9 @@ func (nr *NetReader) Serve() {
 	}()
 }
 
-func (nr *NetReader) handler(w http.ResponseWriter, req *http.Request) {
+func (r *RestApi) getHandler(w http.ResponseWriter, req *http.Request) {
 	if req.FormValue("json") == "true" {
-		b, err := json.Marshal(nr.admodel)
+		b, err := json.Marshal(r.m)
 		if err != nil {
 			log.Print(err)
 			w.Write([]byte(err.Error()))
@@ -66,7 +73,7 @@ func (nr *NetReader) handler(w http.ResponseWriter, req *http.Request) {
 		}
 		w.Write(b)
 	} else {
-		b, err := json.MarshalIndent(nr.admodel, "", "    ")
+		b, err := json.MarshalIndent(r.m, "", "    ")
 		if err != nil {
 			log.Print(err)
 			return
@@ -82,7 +89,7 @@ func (nr *NetReader) handler(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (nr *NetReader) posthandler(w http.ResponseWriter, req *http.Request) {
+func (r *RestApi) postHandler(w http.ResponseWriter, req *http.Request) {
 	mjson := req.FormValue("adm")
 	var m ADM
 	err := json.Unmarshal([]byte(mjson), &m)
@@ -96,7 +103,7 @@ func (nr *NetReader) posthandler(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte("Error: Empty ADM:\n" + mjson))
 		return
 	}
-	nr.admodel = m
-	nr.admCh <- m
-	w.Write([]byte("ADM has been updated to:\n" + mjson))
+	r.m = m
+	r.admCh <- m
+	w.Write([]byte("ADM has been updated to:\n" + r.m.String()))
 }

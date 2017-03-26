@@ -1,17 +1,16 @@
 title = "Hora configuration"
 
-[webui]
-    port = "8080"
 [prediction]
 	interval = "1m"
 	leadtime = "10m"
 	precision = "1ns"
 [adm]
-    [adm.fileio]
+    [adm.filewatcher]
         enabled = false
         path = "/tmp/adm.json"
-    [adm.netio]
+    [adm.restapi]
         enabled = true
+		port = "8080"
 [cfp]
     [cfp.responsetime]
 	    unit = "1ns"

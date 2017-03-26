@@ -4,7 +4,29 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+
+	"github.com/spf13/viper"
 )
+
+type FileWatcher struct {
+	m     ADM
+	admCh chan ADM
+}
+
+func NewFileWatcher() FileWatcher {
+	viper.SetDefault("adm.filewatcher.path", "/tmp/adm.json")
+	fileWatcher := FileWatcher{
+		m:     ADM{},
+		admCh: make(chan ADM, 2),
+	}
+
+	//filepath := viper.GetString("adm.filewatcher.path")
+	return fileWatcher
+}
+
+func (r *FileWatcher) UpdateADM(m ADM) {
+	r.m = m
+}
 
 func ReadFile(path string) (ADM, error) {
 	var m ADM
