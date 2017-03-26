@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -80,5 +81,14 @@ func TestRestApiUpdateADM(t *testing.T) {
 
 	if !strings.Contains(rr.Body.String(), m.String()) {
 		t.Errorf("Handler returned unexpected body: got\n%v that does not contain\n%v", rr.Body.String(), m.String())
+	}
+
+	select {
+	case newModel := <-r.admCh:
+		if newModel.String() != m.String() {
+			t.Errorf("Expected %v but got %v", m.String(), newModel.String())
+		}
+	case <-time.After(1 * time.Second):
+		t.Errorf("Timed out while updating ADM")
 	}
 }
