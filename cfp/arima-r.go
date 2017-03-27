@@ -115,6 +115,10 @@ func (a *ArimaR) Predict() (Result, error) {
 		a.component,
 		a.buf.Value.(mondat.TSPoint).Timestamp,
 		a.buf.Value.(mondat.TSPoint).Timestamp.Add(a.leadtime),
+		mean,
+		lower,
+		upper,
+		sd,
 		failProb,
 	}
 	return result, nil
