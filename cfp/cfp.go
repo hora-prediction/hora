@@ -28,6 +28,10 @@ type Result struct {
 	Component adm.Component
 	Timestamp time.Time
 	Predtime  time.Time
+	PredMean  float64
+	PredLB    float64
+	PredUB    float64
+	PredSd    float64
 	FailProb  float64
 }
 
