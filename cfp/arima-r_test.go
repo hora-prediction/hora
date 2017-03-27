@@ -146,6 +146,33 @@ func TestPredictLinearData100percFail(t *testing.T) {
 	}
 }
 
+func TestPredictSeasonalData0percFail(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
+	comp, tsPoints := CreateSeasonalTSPoints(t)
+	arimaCfp, err := NewArimaR(comp, time.Minute, 2*time.Minute, 40*time.Minute, 0)
+	if err != nil {
+		t.Error("Error getting new ArimaR", err)
+		return
+	}
+	for i := range tsPoints {
+		arimaCfp.Insert(tsPoints[i])
+	}
+	cfpRes, err := arimaCfp.Predict()
+	if err != nil {
+		t.Errorf("Error making prediction: %s", err)
+	}
+	predtime, _ := time.Parse("02 Jan 06 15:04 MST", "01 Jan 17 00:41 UTC")
+	if !cfpRes.Predtime.Equal(predtime) {
+		t.Errorf("Expected prediction time at %s but got %s", predtime, cfpRes.Predtime)
+	}
+	expected := 0.499999985000 // TODO: double-check
+	if math.Abs(cfpRes.FailProb-expected) > epsilon {
+		t.Errorf("Expected failure probability of %.12f but got %.12f", expected, cfpRes.FailProb)
+	}
+}
+
 func TestMain(m *testing.M) {
 	if testing.Short() {
 		// TODO: skip test in short mode
@@ -171,7 +198,6 @@ func TestMain(m *testing.M) {
 		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 		if err := pool.Retry(func() error {
 			var err error
-			//db, err = sql.Open("mysql", fmt.Sprintf("root:secret@(localhost:%s)/mysql", resource.GetPort("3306/tcp")))
 			_, err = rbridge.GetRSession("test")
 			if err != nil {
 				return err
