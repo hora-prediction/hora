@@ -193,7 +193,7 @@ func TestMain(m *testing.M) {
 
 		viper.Set("rserve.hostname", "localhost")
 		viper.Set("rserve.port", resource.GetPort("6311/tcp"))
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 
 		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 		if err := pool.Retry(func() error {
