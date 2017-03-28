@@ -15,6 +15,8 @@ import (
 	"github.com/senseyeio/roger"
 )
 
+const fillValue float64 = 0.0
+
 type ArimaR struct {
 	component adm.Component
 	buf       *ring.Ring
@@ -42,9 +44,30 @@ func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, 
 }
 
 func (a *ArimaR) Insert(p mondat.TSPoint) {
-	// TODO: check timestamp and fill missing data points
-	// TODO: drop if data is older than the latest one
-	a.buf = a.buf.Next()
+	if p.Component != a.component {
+		log.Printf("Warning: receiving data of another component. Expected %s but got %s. Ignoring data point", a.component, p.Component)
+		return
+	}
+	if a.buf.Value != nil {
+		lastTSPoint := a.buf.Value.(mondat.TSPoint)
+		lastTimestamp := lastTSPoint.Timestamp
+		// Drop if received data is older than the latest one
+		if p.Timestamp.Equal(lastTimestamp) || p.Timestamp.Before(lastTimestamp) {
+			log.Printf("Warning: receiving data older than or as old as the latest one. Latest: %s, Received: %s. Ignoring data point", lastTimestamp, p.Timestamp)
+			return
+		}
+		// Fill missing values if there is a gap between latest point in the buffer and the one just received
+		for lastBufTimestamp := a.buf.Value.(mondat.TSPoint).Timestamp; lastBufTimestamp.Add(a.interval).Before(p.Timestamp); lastBufTimestamp = lastBufTimestamp.Add(a.interval) {
+			a.buf = a.buf.Next()
+			fillTSPoint := mondat.TSPoint{
+				Component: p.Component,
+				Timestamp: lastBufTimestamp.Add(a.interval),
+				Value:     fillValue,
+			}
+			a.buf.Value = fillTSPoint
+		}
+		a.buf = a.buf.Next()
+	}
 	a.buf.Value = p
 }
 

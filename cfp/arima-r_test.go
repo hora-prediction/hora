@@ -10,59 +10,101 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/ory-am/dockertest.v3"
 
-	"github.com/teeratpitakrat/hora/adm"
-	"github.com/teeratpitakrat/hora/mondat"
+	//"github.com/teeratpitakrat/hora/adm"
+	//"github.com/teeratpitakrat/hora/mondat"
 	"github.com/teeratpitakrat/hora/rbridge"
 )
 
 var epsilon = 1e-12
 
 // TODO: build mondat.TSPoint
-var testdat = []float64{60, 43, 67, 50, 56, 42, 50, 65, 68, 43, 65, 34, 47, 34, 49, 41, 13, 35, 53, 56}
+//var testdat = []float64{60, 43, 67, 50, 56, 42, 50, 65, 68, 43, 65, 34, 47, 34, 49, 41, 13, 35, 53, 56}
 
 func TestInsert(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping test in short mode.")
 	}
-	c := adm.Component{"A", "host1", "responsetime", 0}
-	a, err := NewArimaR(c, time.Minute, 5*time.Minute, 20*time.Minute, 70)
+	comp, tsPoints := CreateLinearTSPoints(t)
+	arimaCfp, err := NewArimaR(comp, time.Minute, 5*time.Minute, 20*time.Minute, 70)
 	if err != nil {
 		t.Error("Error getting new ArimaR", err)
 		return
 	}
-	a.Insert(mondat.TSPoint{c, time.Unix(0, 0), 1000}) // should be dropped
-	a.Insert(mondat.TSPoint{c, time.Unix(0, 0), 2000}) // should be dropped
-	for _, v := range testdat {
-		a.Insert(mondat.TSPoint{c, time.Unix(0, 0), v})
+	for _, tsPoint := range tsPoints {
+		arimaCfp.Insert(tsPoint)
 	}
-	dat := a.TSPoints()
-	for i, v := range dat {
-		expected := mondat.TSPoint{c, time.Unix(0, 0), testdat[i]}
-		if v != expected {
-			t.Errorf("Expected: %f but got %f", expected, v)
+	bufTSPoints := arimaCfp.TSPoints()
+	for i, bufTSPoint := range bufTSPoints {
+		expected := tsPoints[i]
+		if bufTSPoint != expected {
+			t.Errorf("Expected: %v but got %v", expected, bufTSPoint)
 		}
 	}
 }
 
-func TestPredict(t *testing.T) {
+func TestInsertTSPointsWithWrongTimestamp(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping test in short mode.")
 	}
-	c := adm.Component{"A", "host1", "responsetime", 0}
-	a, err := NewArimaR(c, time.Minute, 5*time.Minute, 20*time.Minute, 70)
+	comp, tsPoints := CreateLinearTSPointsWithWrongTimestamp(t)
+	arimaCfp, err := NewArimaR(comp, time.Minute, 5*time.Minute, 20*time.Minute, 70)
 	if err != nil {
 		t.Error("Error getting new ArimaR", err)
 		return
 	}
-
-	a.Insert(mondat.TSPoint{c, time.Unix(0, 0), 1000}) // should be dropped
-	a.Insert(mondat.TSPoint{c, time.Unix(0, 0), 2000}) // should be dropped
-	for _, v := range testdat {
-		a.Insert(mondat.TSPoint{c, time.Unix(0, 0), v})
+	for _, tsPoint := range tsPoints {
+		arimaCfp.Insert(tsPoint)
 	}
-	//log.Print(a.Predict())
-	// TODO: check result
-	// {48.55 21.717926902432662 75.38207309756733}
+	bufTSPoints := arimaCfp.TSPoints()
+	for i, bufTSPoint := range bufTSPoints {
+		expected := tsPoints[i]
+		if bufTSPoint != expected {
+			t.Errorf("Expected: %v but got %v", expected, bufTSPoint)
+		}
+	}
+}
+
+func TestInsertMoreThanBufferLength(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
+	comp, tsPoints := CreateLinearTSPoints(t)
+	arimaCfp, err := NewArimaR(comp, time.Minute, 5*time.Minute, 10*time.Minute, 70)
+	if err != nil {
+		t.Error("Error getting new ArimaR", err)
+		return
+	}
+	for _, tsPoint := range tsPoints {
+		arimaCfp.Insert(tsPoint)
+	}
+	bufTSPoints := arimaCfp.TSPoints()
+	for i, bufTSPoint := range bufTSPoints {
+		expected := tsPoints[i+10]
+		if bufTSPoint != expected {
+			t.Errorf("Expected: %v but got %v", expected, bufTSPoint)
+		}
+	}
+}
+func TestInsertMissingTSPoints(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
+	comp, missingTSPoints, completeTSPoints := CreateMissingTSPoints(t)
+	arimaCfp, err := NewArimaR(comp, time.Minute, 5*time.Minute, 20*time.Minute, 70)
+	if err != nil {
+		t.Error("Error getting new ArimaR", err)
+		return
+	}
+	for _, tsPoint := range missingTSPoints {
+		arimaCfp.Insert(tsPoint)
+	}
+	bufTSPoints := arimaCfp.TSPoints()
+	for i, bufTSPoint := range bufTSPoints {
+		expected := completeTSPoints[i]
+		if bufTSPoint != expected {
+			t.Errorf("Expected: %v but got %v", expected, bufTSPoint)
+		}
+	}
 }
 
 func TestPredictLinearData0percFail(t *testing.T) {
@@ -198,7 +240,7 @@ func TestMain(m *testing.M) {
 		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
 		if err := pool.Retry(func() error {
 			var err error
-			_, err = rbridge.GetRSession("test")
+			_, err = rbridge.GetRSession("test-arima")
 			if err != nil {
 				return err
 			}
