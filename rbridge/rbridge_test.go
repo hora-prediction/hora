@@ -1,8 +1,59 @@
 package rbridge
 
 import (
+	"log"
+	"os"
 	"testing"
+	"time"
+
+	"github.com/spf13/viper"
+	"gopkg.in/ory-am/dockertest.v3"
 )
+
+func TestMain(m *testing.M) {
+	if testing.Short() {
+		// TODO: skip test in short mode
+		code := m.Run()
+		os.Exit(code)
+	} else {
+		// uses a sensible default on windows (tcp/http) and linux/osx (socket)
+		pool, err := dockertest.NewPool("")
+		if err != nil {
+			log.Fatalf("Could not connect to docker: %s", err)
+		}
+
+		// pulls an image, creates a container based on it and runs it
+		resource, err := pool.Run("teeratpitakrat/docker-r-hora", "latest", nil)
+		if err != nil {
+			log.Fatalf("Could not start resource: %s", err)
+		}
+
+		viper.Set("rserve.hostname", "localhost")
+		viper.Set("rserve.port", resource.GetPort("6311/tcp"))
+		time.Sleep(2 * time.Second)
+
+		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+		if err := pool.Retry(func() error {
+			var err error
+			_, err = GetRSession("test-rbridge")
+			if err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			log.Fatalf("Could not connect to docker-r-hora: %s", err)
+		}
+
+		code := m.Run()
+
+		// You can't defer this because os.Exit doesn't care for defer
+		if err := pool.Purge(resource); err != nil {
+			log.Fatalf("Could not purge resource: %s", err)
+		}
+
+		os.Exit(code)
+	}
+}
 
 func TestGetRSession(t *testing.T) {
 	if testing.Short() {
