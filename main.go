@@ -51,7 +51,7 @@ func main() {
 		viper.GetString("influxdb.hora.db"),
 	)
 	if err != nil {
-		log.Println(err)
+		log.Printf("Error creating InfluxDB result writer. %s", err)
 	}
 
 	influxKiekerReader := mondat.InfluxKiekerReader{
