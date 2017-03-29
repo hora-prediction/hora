@@ -45,9 +45,10 @@ func main() {
 	}
 
 	resultWriter, err := resultio.New(
-		viper.GetString("influxdb.addr"),
-		viper.GetString("influxdb.username"),
-		viper.GetString("influxdb.password"),
+		viper.GetString("influxdb.hora.addr"),
+		viper.GetString("influxdb.hora.username"),
+		viper.GetString("influxdb.hora.password"),
+		viper.GetString("influxdb.hora.db"),
 	)
 	if err != nil {
 		log.Println(err)

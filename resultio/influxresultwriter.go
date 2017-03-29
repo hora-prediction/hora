@@ -14,7 +14,7 @@ type InfluxResultWriter struct {
 	influxClnt client.Client
 }
 
-func New(addr, username, password string) (InfluxResultWriter, error) {
+func New(addr, username, password, db string) (InfluxResultWriter, error) {
 	viper.SetDefault("influxdb.db.hora", "hora")
 
 	var influxResultWriter InfluxResultWriter
@@ -29,7 +29,7 @@ func New(addr, username, password string) (InfluxResultWriter, error) {
 	}
 	influxResultWriter.influxClnt = clnt
 
-	err = influxResultWriter.createDB(viper.GetString("influxdb.db.hora"))
+	err = influxResultWriter.createDB(db)
 	if err != nil {
 		log.Fatal(err)
 		return influxResultWriter, err
