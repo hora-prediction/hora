@@ -44,6 +44,7 @@ func TestMain(m *testing.M) {
 		viper.Set("influxdb.k8s.password", "root")
 		viper.Set("influxdb.k8s.db", "kieker")
 
+		log.Println("Waiting for docker container")
 		time.Sleep(2 * time.Second)
 
 		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
@@ -74,6 +75,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestReadBatchWithZeroStarttime(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	m := adm.CreateSmallADM(t)
 	influxKiekerReader := InfluxKiekerReader{
 		Archdepmod: m,
@@ -100,6 +104,9 @@ func TestReadBatchWithZeroStarttime(t *testing.T) {
 }
 
 func TestReadBatchWithZeroEndtime(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	m := adm.CreateSmallADM(t)
 	influxKiekerReader := InfluxKiekerReader{
 		Archdepmod: m,
@@ -126,6 +133,9 @@ func TestReadBatchWithZeroEndtime(t *testing.T) {
 }
 
 func TestReadBatch(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     viper.GetString("influxdb.kieker.addr"),
 		Username: "root",
@@ -165,7 +175,7 @@ func TestReadBatch(t *testing.T) {
 		select {
 		case dat, ok := <-mondatCh:
 			if !ok {
-				t.Fatalf("ch closed")
+				t.Fatalf("Expected monitoring data but the channel is closed")
 			}
 			switch dat.Component.Type {
 			case "responsetime":
@@ -186,7 +196,7 @@ func TestReadBatch(t *testing.T) {
 			default:
 				t.Fatalf("Unknown component type: %v", dat.Component)
 			}
-		case <-time.After(1 * time.Second):
+		case <-time.After(2 * time.Second):
 			t.Fatalf("Timed out while reading monitoring data from InfluxDB")
 		}
 	}
@@ -194,7 +204,7 @@ func TestReadBatch(t *testing.T) {
 		select {
 		case dat, ok := <-mondatCh:
 			if !ok {
-				t.Fatalf("ch closed")
+				t.Fatalf("Expected monitoring data but the channel is closed")
 			}
 			switch dat.Component.Type {
 			case "responsetime":
@@ -215,7 +225,7 @@ func TestReadBatch(t *testing.T) {
 			default:
 				t.Fatalf("Unknown component type: %v", dat.Component)
 			}
-		case <-time.After(1 * time.Second):
+		case <-time.After(2 * time.Second):
 			t.Fatalf("Timed out while reading monitoring data from InfluxDB")
 		}
 	}
@@ -225,7 +235,103 @@ func TestReadBatch(t *testing.T) {
 			if ok {
 				t.Fatalf("Expected channel to be closed.")
 			}
-		case <-time.After(1 * time.Second):
+		case <-time.After(2 * time.Second):
+			t.Fatalf("Timed out while reading monitoring data from InfluxDB")
+		}
+	}
+}
+
+func TestReadRealtime(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping test in short mode.")
+	}
+	clnt, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr:     viper.GetString("influxdb.kieker.addr"),
+		Username: "root",
+		Password: "root",
+	})
+	if err != nil {
+		t.Errorf("Cannot create InfluxDB client. %s", err)
+	}
+	createTestDBs(t, clnt)
+	defer dropTestDBs(t, clnt)
+
+	m := adm.CreateSmallADMWithHW(t)
+	influxKiekerReader := InfluxKiekerReader{
+		Archdepmod: m,
+		KiekerDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "kiekerTest",
+		},
+		K8sDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "k8sTest",
+		},
+		Batch:    false,
+		Interval: time.Minute,
+	}
+	log.Printf("Testing reading monitoring data in realtime. The test will take approximately 3 minutes.")
+	WriteTestDataInTheFuture(t)
+	mondatCh := influxKiekerReader.Read()
+	for i := 0; i < len(m); i++ {
+		select {
+		case dat, ok := <-mondatCh:
+			if !ok {
+				t.Fatalf("Expected monitoring data but the channel is closed")
+			}
+			switch dat.Component.Type {
+			case "responsetime":
+				expected := 9.5e10
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			case "cpu":
+				expected := 100.0
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			case "memory":
+				expected := 1e9
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			default:
+				t.Fatalf("Unknown component type: %v", dat.Component)
+			}
+		case <-time.After(70 * time.Second):
+			t.Fatalf("Timed out while reading monitoring data from InfluxDB")
+		}
+	}
+	for i := 0; i < len(m); i++ {
+		select {
+		case dat, ok := <-mondatCh:
+			if !ok {
+				t.Fatalf("Expected monitoring data but the channel is closed")
+			}
+			switch dat.Component.Type {
+			case "responsetime":
+				expected := 19.5e10
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			case "cpu":
+				expected := 100.0
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			case "memory":
+				expected := 1e9
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			default:
+				t.Fatalf("Unknown component type: %v", dat.Component)
+			}
+		case <-time.After(70 * time.Second):
 			t.Fatalf("Timed out while reading monitoring data from InfluxDB")
 		}
 	}
