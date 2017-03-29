@@ -7,7 +7,7 @@ import (
 	"github.com/teeratpitakrat/hora/fpm"
 
 	"github.com/influxdata/influxdb/client/v2"
-	"github.com/spf13/viper"
+	//"github.com/spf13/viper"
 )
 
 type InfluxResultWriter struct {
@@ -15,8 +15,6 @@ type InfluxResultWriter struct {
 }
 
 func New(addr, username, password, db string) (InfluxResultWriter, error) {
-	viper.SetDefault("influxdb.db.hora", "hora")
-
 	var influxResultWriter InfluxResultWriter
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     addr,
@@ -24,14 +22,14 @@ func New(addr, username, password, db string) (InfluxResultWriter, error) {
 		Password: password,
 	})
 	if err != nil {
-		log.Fatal("Error: cannot create new influxdb client", err)
+		log.Printf("Error creating new influxdb client. %s", err)
 		return influxResultWriter, err
 	}
 	influxResultWriter.influxClnt = clnt
 
 	err = influxResultWriter.createDB(db)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error creating DB. %s", err)
 		return influxResultWriter, err
 	}
 
@@ -47,7 +45,6 @@ func (w *InfluxResultWriter) createDB(db string) error {
 		if response.Error() != nil {
 			return response.Error()
 		}
-		//res = response.Results
 	} else {
 		return err
 	}
@@ -61,7 +58,7 @@ func (w *InfluxResultWriter) WriteCfpResult(result cfp.Result) error {
 		Precision: "ns",
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error creating batch point. %s", err)
 		return err
 	}
 
@@ -77,14 +74,14 @@ func (w *InfluxResultWriter) WriteCfpResult(result cfp.Result) error {
 
 	pt, err := client.NewPoint("cfp", tags, fields, result.Predtime)
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error creating point. %s", err)
 		return err
 	}
 	bp.AddPoint(pt)
 
 	// Write the batch
 	if err := w.influxClnt.Write(bp); err != nil {
-		log.Fatal(err)
+		log.Printf("Error writing batch point. %s", err)
 		return err
 	}
 	return nil
@@ -97,7 +94,7 @@ func (w *InfluxResultWriter) WriteFpmResult(result fpm.Result) error {
 		Precision: "ns",
 	})
 	if err != nil {
-		log.Fatal(err)
+		log.Printf("Error creating batch point. %s", err)
 		return err
 	}
 
@@ -114,7 +111,7 @@ func (w *InfluxResultWriter) WriteFpmResult(result fpm.Result) error {
 
 		pt, err := client.NewPoint("fpm", tags, fields, result.Predtime)
 		if err != nil {
-			log.Fatal(err)
+			log.Printf("Error creating point. %s", err)
 			return err
 		}
 		bp.AddPoint(pt)
@@ -122,7 +119,7 @@ func (w *InfluxResultWriter) WriteFpmResult(result fpm.Result) error {
 
 	// Write the batch
 	if err := w.influxClnt.Write(bp); err != nil {
-		log.Fatal(err)
+		log.Printf("Error writing batch point. %s", err)
 		return err
 	}
 	return nil

@@ -33,13 +33,17 @@ func NewBayesNetR(m adm.ADM) (BayesNetR, <-chan Result, error) {
 
 	rSession, err := rbridge.GetRSession("fpm" + strconv.FormatInt(rand.Int63(), 10))
 	if err != nil {
-		log.Print("Error: Cannot get R session", err)
+		log.Printf("Error: Cannot get R session. %s", err)
 		return f, f.fpmResultCh, err
 	}
 	f.rSession = rSession
 
 	f.admodel = m
-	f.createBayesNet()
+	err = f.createBayesNet()
+	if err != nil {
+		log.Printf("Error creating BN. %s", err)
+		return f, f.fpmResultCh, err
+	}
 
 	f.admCh = make(chan adm.ADM, 1)
 	f.cfpResults = make(map[adm.Component]cfp.Result)
@@ -68,7 +72,7 @@ func (f *BayesNetR) createBayesNet() error {
 	cmd += "\")"
 	_, err := f.rSession.Eval(cmd)
 	if err != nil {
-		log.Print("Error: ", err)
+		log.Printf("Error creating BN structure cmd=%s. %s ", cmd, err)
 		return err
 	}
 
@@ -128,7 +132,7 @@ func (f *BayesNetR) createBayesNet() error {
 		}
 		_, err := f.rSession.Eval(cmd)
 		if err != nil {
-			log.Print("Error: ", err)
+			log.Printf("Error creating CPTs cmd=%s. %s ", cmd, err)
 			return err
 		}
 	}
@@ -144,7 +148,7 @@ func (f *BayesNetR) createBayesNet() error {
 	cmd += "))"
 	_, err = f.rSession.Eval(cmd)
 	if err != nil {
-		log.Print("Error: ", err)
+		log.Printf("Error creating BN cmd=%s. %s ", cmd, err)
 		return err
 	}
 	return nil
@@ -167,7 +171,7 @@ func (f *BayesNetR) predict() (Result, error) {
 		cmd := "cpquery(net.disc, (" + v.Caller.UniqName() + " == \"fail\"), TRUE)"
 		ret, err := f.rSession.Eval(cmd)
 		if err != nil {
-			log.Print("Error: ", err)
+			log.Printf("Error inferring cmd=%s. %s ", cmd, err)
 			return result, err
 		}
 		result.FailProbs[v.Caller] = ret.(float64)
