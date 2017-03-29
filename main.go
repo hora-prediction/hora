@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"strings"
+	"time"
 
 	"github.com/teeratpitakrat/hora/adm"
 	"github.com/teeratpitakrat/hora/cfp"
@@ -52,22 +53,29 @@ func main() {
 		log.Println(err)
 	}
 
-	influxReader := mondat.InfluxKiekerReader{
+	influxKiekerReader := mondat.InfluxKiekerReader{
 		Archdepmod: m,
-		Addr:       viper.GetString("influxdb.addr"),
-		Username:   viper.GetString("influxdb.username"),
-		Password:   viper.GetString("influxdb.password"),
-		KiekerDb:   viper.GetString("influxdb.db.kieker"),
-		K8sDb:      viper.GetString("influxdb.db.k8s"),
-		Batch:      viper.GetBool("influxdb.batch"),
-		Interval:   viper.GetDuration("prediction.interval"),
+		KiekerDb: mondat.InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: viper.GetString("influxdb.kieker.username"),
+			Password: viper.GetString("influxdb.kieker.password"),
+			DbName:   viper.GetString("influxdb.kieker.db"),
+		},
+		K8sDb: mondat.InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.k8s.addr"),
+			Username: viper.GetString("influxdb.k8s.username"),
+			Password: viper.GetString("influxdb.k8s.password"),
+			DbName:   viper.GetString("influxdb.k8s.db"),
+		},
+		Batch:    false,
+		Interval: time.Minute,
 	}
 
 	go func() {
 		for {
 			m := <-admController.AdmCh
 			log.Println("Updating ADM")
-			influxReader.UpdateADM(m)
+			influxKiekerReader.UpdateADM(m)
 			cfpController.UpdateADM(m)
 			f.UpdateAdm(m)
 			log.Println("Updating ADM done")
@@ -90,7 +98,7 @@ func main() {
 	}()
 
 	// Start reading monitoring data
-	monDatCh := influxReader.Read()
+	monDatCh := influxKiekerReader.Read()
 	for {
 		monDat, ok := <-monDatCh
 		if !ok {
