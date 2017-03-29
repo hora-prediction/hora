@@ -10,8 +10,6 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/ory-am/dockertest.v3"
 
-	//"github.com/teeratpitakrat/hora/adm"
-	//"github.com/teeratpitakrat/hora/mondat"
 	"github.com/teeratpitakrat/hora/rbridge"
 )
 

@@ -38,15 +38,19 @@ title = "Hora configuration"
     hostname = "rserve"
 	port = 6311
 [influxdb]
-    addr = "http://influxdb:8086"
-	username = "root"
-	password = "root"
 	batch = false
-	[influxdb.db]
-	    k8s = "k8s"
-	    kieker = "kieker"
-		hora = "hora"
-	[influxdb.table]
-		k8s = "k8s"
-	    kieker = "operation_execution"
-		hora = "hora"
+    [influxdb.kieker]
+        addr = "http://influxdb:8086"
+	    username = "root"
+	    password = "root"
+	    db = "kieker"
+    [influxdb.k8s]
+        addr = "http://monitoring-influxdb.kube-system:8086"
+	    username = "root"
+	    password = "root"
+	    db = "kieker"
+    [influxdb.hora]
+	    addr = "http://influxdb:8086"
+        username = "root"
+	    password = "root"
+	    db = "hora"

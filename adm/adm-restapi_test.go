@@ -20,7 +20,7 @@ func TestRestApiEmptyADM(t *testing.T) {
 	viper.AddConfigPath("../.")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		log.Print("Fatal error config file: %s \n", err)
+		log.Printf("Fatal error config file: %s \n", err)
 	}
 	viper.SetDefault("adm.restapi.port", "8080")
 
@@ -57,7 +57,7 @@ func TestRestApiUpdateADM(t *testing.T) {
 	viper.AddConfigPath("../.")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		log.Print("Fatal error config file: %s \n", err)
+		log.Printf("Fatal error config file: %s \n", err)
 	}
 	viper.SetDefault("adm.restapi.port", "8080")
 
