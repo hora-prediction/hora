@@ -15,8 +15,50 @@ import (
 
 var epsilon = 1e-12
 
-// TODO: build mondat.TSPoint
-//var testdat = []float64{60, 43, 67, 50, 56, 42, 50, 65, 68, 43, 65, 34, 47, 34, 49, 41, 13, 35, 53, 56}
+func TestMain(m *testing.M) {
+	if testing.Short() {
+		// TODO: skip test in short mode
+		code := m.Run()
+		os.Exit(code)
+	} else {
+		// uses a sensible default on windows (tcp/http) and linux/osx (socket)
+		pool, err := dockertest.NewPool("")
+		if err != nil {
+			log.Fatalf("Could not connect to docker: %s", err)
+		}
+
+		// pulls an image, creates a container based on it and runs it
+		resource, err := pool.Run("teeratpitakrat/docker-r-hora", "latest", nil)
+		if err != nil {
+			log.Fatalf("Could not start resource: %s", err)
+		}
+
+		viper.Set("rserve.hostname", "localhost")
+		viper.Set("rserve.port", resource.GetPort("6311/tcp"))
+		time.Sleep(2 * time.Second)
+
+		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
+		if err := pool.Retry(func() error {
+			var err error
+			_, err = rbridge.GetRSession("test-arima")
+			if err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
+			log.Fatalf("Could not connect to docker-r-hora: %s", err)
+		}
+
+		code := m.Run()
+
+		// You can't defer this because os.Exit doesn't care for defer
+		if err := pool.Purge(resource); err != nil {
+			log.Fatalf("Could not purge resource: %s", err)
+		}
+
+		os.Exit(code)
+	}
+}
 
 func TestInsert(t *testing.T) {
 	if testing.Short() {
@@ -210,50 +252,5 @@ func TestPredictSeasonalData0percFail(t *testing.T) {
 	expected := 0.499999985000 // TODO: double-check
 	if math.Abs(cfpRes.FailProb-expected) > epsilon {
 		t.Errorf("Expected failure probability of %.12f but got %.12f", expected, cfpRes.FailProb)
-	}
-}
-
-func TestMain(m *testing.M) {
-	if testing.Short() {
-		// TODO: skip test in short mode
-		code := m.Run()
-		os.Exit(code)
-	} else {
-		// uses a sensible default on windows (tcp/http) and linux/osx (socket)
-		pool, err := dockertest.NewPool("")
-		if err != nil {
-			log.Fatalf("Could not connect to docker: %s", err)
-		}
-
-		// pulls an image, creates a container based on it and runs it
-		resource, err := pool.Run("teeratpitakrat/docker-r-hora", "latest", nil)
-		if err != nil {
-			log.Fatalf("Could not start resource: %s", err)
-		}
-
-		viper.Set("rserve.hostname", "localhost")
-		viper.Set("rserve.port", resource.GetPort("6311/tcp"))
-		time.Sleep(2 * time.Second)
-
-		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet
-		if err := pool.Retry(func() error {
-			var err error
-			_, err = rbridge.GetRSession("test-arima")
-			if err != nil {
-				return err
-			}
-			return nil
-		}); err != nil {
-			log.Fatalf("Could not connect to docker-r-hora: %s", err)
-		}
-
-		code := m.Run()
-
-		// You can't defer this because os.Exit doesn't care for defer
-		if err := pool.Purge(resource); err != nil {
-			log.Fatalf("Could not purge resource: %s", err)
-		}
-
-		os.Exit(code)
 	}
 }
