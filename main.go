@@ -52,10 +52,22 @@ func main() {
 		log.Println(err)
 	}
 
+	influxReader := mondat.InfluxKiekerReader{
+		Archdepmod: m,
+		Addr:       viper.GetString("influxdb.addr"),
+		Username:   viper.GetString("influxdb.username"),
+		Password:   viper.GetString("influxdb.password"),
+		KiekerDb:   viper.GetString("influxdb.db.kieker"),
+		K8sDb:      viper.GetString("influxdb.db.k8s"),
+		Batch:      viper.GetBool("influxdb.batch"),
+		Interval:   viper.GetDuration("prediction.interval"),
+	}
+
 	go func() {
 		for {
 			m := <-admController.AdmCh
 			log.Println("Updating ADM")
+			influxReader.UpdateADM(m)
 			cfpController.UpdateADM(m)
 			f.UpdateAdm(m)
 			log.Println("Updating ADM done")
@@ -78,18 +90,7 @@ func main() {
 	}()
 
 	// Start reading monitoring data
-	influxReader := mondat.InfluxKiekerReader{
-		Archdepmod: m,
-		Addr:       viper.GetString("influxdb.addr"),
-		Username:   viper.GetString("influxdb.username"),
-		Password:   viper.GetString("influxdb.password"),
-		KiekerDb:   viper.GetString("influxdb.db.kieker"),
-		K8sDb:      viper.GetString("influxdb.db.k8s"),
-		Batch:      viper.GetBool("influxdb.batch"),
-		Interval:   viper.GetDuration("prediction.interval"),
-	}
 	monDatCh := influxReader.Read()
-
 	for {
 		monDat, ok := <-monDatCh
 		if !ok {
@@ -99,5 +100,4 @@ func main() {
 		cfpController.AddMonDat(monDat)
 		// TODO: send mondat to eval
 	}
-
 }

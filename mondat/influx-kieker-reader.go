@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/teeratpitakrat/hora/adm"
@@ -14,14 +15,14 @@ import (
 )
 
 type InfluxKiekerReader struct {
-	Archdepmod adm.ADM
-	KiekerDb   InfluxDBConfig
-	K8sDb      InfluxDBConfig
-	Batch      bool
-	Starttime  time.Time
-	Endtime    time.Time
-	Interval   time.Duration // TODO: Allow interval other than 1m
-	// TODO: aggregation type for each component type
+	Archdepmod      adm.ADM
+	ArchdepmodMutex sync.Mutex
+	KiekerDb        InfluxDBConfig
+	K8sDb           InfluxDBConfig
+	Batch           bool
+	Starttime       time.Time
+	Endtime         time.Time
+	Interval        time.Duration // TODO: Allow interval other than 1m
 }
 
 type InfluxDBConfig struct {
@@ -33,24 +34,40 @@ type InfluxDBConfig struct {
 	Clnt client.Client
 }
 
+func (r *InfluxKiekerReader) UpdateADM(m adm.ADM) {
+	r.ArchdepmodMutex.Lock()
+	r.Archdepmod = m
+	r.ArchdepmodMutex.Unlock()
+}
+
 func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 	viper.SetDefault("cfp.responsetime.aggregation", "percentile")
 	viper.SetDefault("cfp.responsetime.aggregationvalue", "95")
+	viper.SetDefault("cfp.cpu.aggregation", "percentile")
+	viper.SetDefault("cfp.cpu.aggregationvalue", "95")
+	viper.SetDefault("cfp.memory.aggregation", "percentile")
+	viper.SetDefault("cfp.memory.aggregationvalue", "95")
+
+	//mondatCh := make(chan TSPoint, 10)
+	mondatCh := make(chan TSPoint)
 
 	if r.Interval != time.Minute {
-		log.Fatal("Hora currently supports only 1 minute intervals")
+		log.Printf("Hora currently supports only 1 minute intervals. Terminating.")
+		close(mondatCh)
+		return mondatCh
 	}
 
 	// TODO: initialize influxd clients for both db
 
-	mondatCh := make(chan TSPoint, 10)
 	kiekerClnt, err := client.NewHTTPClient(client.HTTPConfig{
 		Addr:     r.KiekerDb.Addr,
 		Username: r.KiekerDb.Username,
 		Password: r.KiekerDb.Password,
 	})
 	if err != nil {
-		log.Fatalf("Error: cannot create new influxdb client for Kieker DB", err)
+		log.Printf("Error: cannot create new influxdb client for Kieker DB. Terminating. %s", err)
+		close(mondatCh)
+		return mondatCh
 	}
 	r.KiekerDb.Clnt = kiekerClnt
 
@@ -60,7 +77,9 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 		Password: r.KiekerDb.Password,
 	})
 	if err != nil {
-		log.Fatalf("Error: cannot create new influxdb client for K8s DB", err)
+		log.Printf("Error: cannot create new influxdb client for K8s DB. Terminating. %s", err)
+		close(mondatCh)
+		return mondatCh
 	}
 	r.K8sDb.Clnt = k8sClnt
 	//if r.Batch {
@@ -70,7 +89,7 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 	//log.Print("Reading monitoring data in realtime mode")
 	//go r.readRealtime(clnt, mondatCh)
 	//}
-	r.startReading(mondatCh)
+	go r.startReading(mondatCh)
 	return mondatCh
 }
 
@@ -79,7 +98,14 @@ func (r *InfluxKiekerReader) startReading(mondatCh chan TSPoint) {
 	var ticker *time.Ticker
 	if r.Batch {
 		if r.Starttime.IsZero() {
-			log.Fatal("Please specify starttime when using batch mode")
+			log.Printf("Please specify starttime when using batch mode")
+			close(mondatCh)
+			return
+		}
+		if r.Endtime.IsZero() {
+			log.Printf("Please specify endtime when using batch mode")
+			close(mondatCh)
+			return
 		}
 		curtime = r.Starttime.Truncate(time.Minute)
 	} else {
@@ -95,6 +121,7 @@ func (r *InfluxKiekerReader) startReading(mondatCh chan TSPoint) {
 MainLoop:
 	for {
 		log.Print("Reading monitoring data at ", curtime)
+		r.ArchdepmodMutex.Lock()
 	ComponentLoop:
 		for _, depInfo := range r.Archdepmod {
 			var q client.Query
@@ -105,8 +132,7 @@ MainLoop:
 			case "responsetime":
 				aggregation := viper.GetString("cfp.responsetime.aggregation")
 				aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
-				cmd := fmt.Sprintf("SELECT %s(responseTime,%d) FROM OperationExecution WHERE \"hostname\"='%s' AND \"operationSignature\"='%s' AND time >= %s AND time < %s GROUP BY time (1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, depInfo.Caller.Name, strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10), strconv.FormatInt(curtime.UnixNano(), 10))
-				log.Printf("cmd=", cmd)
+				cmd := fmt.Sprintf("SELECT %s(responseTime,%s) FROM OperationExecution WHERE \"hostname\"='%s' AND \"operationSignature\"='%s' AND time >= %s AND time < %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, depInfo.Caller.Name, strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10), strconv.FormatInt(curtime.UnixNano(), 10))
 				q = client.Query{
 					Command:  cmd,
 					Database: r.KiekerDb.DbName,
@@ -115,8 +141,7 @@ MainLoop:
 			case "cpu":
 				aggregation := viper.GetString("cfp.cpu.aggregation")
 				aggregationvalue := viper.GetString("cfp.cpu.aggregationvalue")
-				cmd := fmt.Sprintf("SELECT %s(value,%d) FROM \"cpu/usage_rate\" WHERE \"pod_name\"='%s' AND time >= %s AND time < %s GROUP BY time (1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10), strconv.FormatInt(curtime.UnixNano(), 10))
-				log.Printf("cmd=", cmd)
+				cmd := fmt.Sprintf("SELECT %s(value,%s) FROM \"cpu/usage_rate\" WHERE \"pod_name\"='%s' AND time > %s AND time <= %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10), strconv.FormatInt(curtime.UnixNano(), 10))
 				q = client.Query{
 					Command:  cmd,
 					Database: r.K8sDb.DbName,
@@ -125,8 +150,7 @@ MainLoop:
 			case "memory":
 				aggregation := viper.GetString("cfp.memory.aggregation")
 				aggregationvalue := viper.GetString("cfp.memory.aggregationvalue")
-				cmd := fmt.Sprintf("SELECT %s(value,%d) FROM \"memory/usage\" WHERE \"pod_name\"='%s' AND time >= %s AND time < %s GROUP BY time (1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10), strconv.FormatInt(curtime.UnixNano(), 10))
-				log.Printf("cmd=", cmd)
+				cmd := fmt.Sprintf("SELECT %s(value,%s) FROM \"memory/usage\" WHERE \"pod_name\"='%s' AND time > %s AND time <= %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10), strconv.FormatInt(curtime.UnixNano(), 10))
 				q = client.Query{
 					Command:  cmd,
 					Database: r.K8sDb.DbName,
@@ -134,10 +158,16 @@ MainLoop:
 				response, err = r.K8sDb.Clnt.Query(q)
 			}
 			if err != nil {
-				log.Fatalf("Error: cannot query data with cmd=", cmd, err)
+				log.Printf("Error: cannot query data with cmd=%s. %s", cmd, err)
+				break MainLoop
+			}
+			if response == nil {
+				log.Printf("Error: nil response from InfluxDB. Terminating reading.")
+				break MainLoop
 			}
 			if response.Error() != nil {
-				log.Fatalf("Error: bad response with cmd=", cmd, response.Error())
+				log.Printf("Error: bad response from InfluxDB. Terminating reading. %s", response.Error())
+				break MainLoop
 			}
 			res := response.Results
 
@@ -148,16 +178,21 @@ MainLoop:
 			for _, row := range res[0].Series[0].Values {
 				t, err := time.Parse(time.RFC3339, row[0].(string))
 				if err != nil {
-					log.Fatal(err)
+					log.Printf("Error parsing result from InfluxDB. %s", err)
 				}
 
 				if row[1] != nil {
 					val, _ := row[1].(json.Number).Float64()
-					point := TSPoint{depInfo.Caller, t, val}
+					point := TSPoint{
+						Component: depInfo.Caller,
+						Timestamp: t,
+						Value:     val,
+					}
 					mondatCh <- point
 				}
 			}
 		}
+		r.ArchdepmodMutex.Unlock()
 		if r.Batch {
 			curtime = curtime.Add(time.Minute)
 			if curtime.After(r.Endtime) {
@@ -168,6 +203,7 @@ MainLoop:
 			curtime = curtime.Truncate(time.Minute)
 		}
 	}
+	close(mondatCh)
 }
 
 //func (r *InfluxKiekerReader) readBatch(clnt client.Client, ch chan TSPoint) {

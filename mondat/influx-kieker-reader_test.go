@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	//"github.com/teeratpitakrat/hora/adm"
+	"github.com/teeratpitakrat/hora/adm"
 
 	"github.com/influxdata/influxdb/client/v2"
 	"github.com/spf13/viper"
@@ -73,25 +73,57 @@ func TestMain(m *testing.M) {
 	}
 }
 
-//func TestReadBatch(t *testing.T) {
-//if testing.Short() {
-//t.Skip("skipping test in short mode.")
-//}
-//viper.SetConfigName("config") // name of config file (without extension)
-//viper.SetConfigType("toml")
-//viper.AddConfigPath("../.")
-//err := viper.ReadInConfig() // Find and read the config file
-//if err != nil {             // Handle errors reading the config file
-//log.Print("Fatal error config file: %s \n", err)
-//}
+func TestReadBatchWithZeroStarttime(t *testing.T) {
+	m := adm.CreateSmallADM(t)
+	influxKiekerReader := InfluxKiekerReader{
+		Archdepmod: m,
+		KiekerDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "kiekerTest",
+		},
+		K8sDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "k8sTest",
+		},
+		Batch:    true,
+		Endtime:  time.Now(),
+		Interval: time.Minute,
+	}
+	mondatCh := influxKiekerReader.Read()
+	if _, ok := <-mondatCh; ok {
+		t.Errorf("Expected mondatCh to be closed")
+	}
+}
 
-//viper.SetDefault("influxdb.addr", "http://localhost:8086")
-//viper.SetDefault("influxdb.username", "root")
-//viper.SetDefault("influxdb.password", "root")
-//viper.SetDefault("influxdb.db.kieker", "kieker")
-
-////TODO
-//}
+func TestReadBatchWithZeroEndtime(t *testing.T) {
+	m := adm.CreateSmallADM(t)
+	influxKiekerReader := InfluxKiekerReader{
+		Archdepmod: m,
+		KiekerDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "kiekerTest",
+		},
+		K8sDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "k8sTest",
+		},
+		Batch:     true,
+		Starttime: time.Now(),
+		Interval:  time.Minute,
+	}
+	mondatCh := influxKiekerReader.Read()
+	if _, ok := <-mondatCh; ok {
+		t.Errorf("Expected mondatCh to be closed")
+	}
+}
 
 func TestReadBatch(t *testing.T) {
 	clnt, err := client.NewHTTPClient(client.HTTPConfig{
@@ -105,25 +137,114 @@ func TestReadBatch(t *testing.T) {
 	createTestDBs(t, clnt)
 	defer dropTestDBs(t, clnt)
 
-	WriteTestPastData(t)
-	// TODO: test
-
+	WriteTestDataInThePast(t)
+	m := adm.CreateSmallADMWithHW(t)
+	starttime, err := time.Parse("02 Jan 06 15:04:05 MST", "01 Jan 17 00:01:02 UTC")
+	endtime, err := time.Parse("02 Jan 06 15:04:05 MST", "01 Jan 17 00:03:02 UTC")
+	influxKiekerReader := InfluxKiekerReader{
+		Archdepmod: m,
+		KiekerDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "kiekerTest",
+		},
+		K8sDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.kieker.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "k8sTest",
+		},
+		Batch:     true,
+		Starttime: starttime,
+		Endtime:   endtime,
+		Interval:  time.Minute,
+	}
+	mondatCh := influxKiekerReader.Read()
+	for i := 0; i < len(m); i++ {
+		select {
+		case dat, ok := <-mondatCh:
+			if !ok {
+				t.Fatalf("ch closed")
+			}
+			switch dat.Component.Type {
+			case "responsetime":
+				expected := 9.5e10
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			case "cpu":
+				expected := 100.0
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			case "memory":
+				expected := 1e9
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			default:
+				t.Fatalf("Unknown component type: %v", dat.Component)
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatalf("Timed out while reading monitoring data from InfluxDB")
+		}
+	}
+	for i := 0; i < len(m); i++ {
+		select {
+		case dat, ok := <-mondatCh:
+			if !ok {
+				t.Fatalf("ch closed")
+			}
+			switch dat.Component.Type {
+			case "responsetime":
+				expected := 19.5e10
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			case "cpu":
+				expected := 100.0
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			case "memory":
+				expected := 1e9
+				if dat.Value != expected {
+					t.Fatalf("Expected %.0f but got %.0f", expected, dat.Value)
+				}
+			default:
+				t.Fatalf("Unknown component type: %v", dat.Component)
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatalf("Timed out while reading monitoring data from InfluxDB")
+		}
+	}
+	for i := 0; i < len(m); i++ {
+		select {
+		case _, ok := <-mondatCh:
+			if ok {
+				t.Fatalf("Expected channel to be closed.")
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatalf("Timed out while reading monitoring data from InfluxDB")
+		}
+	}
 }
 
 func createTestDBs(t *testing.T, clnt client.Client) {
-	cmd := fmt.Sprintf("CREATE DATABASE %s", "TestKiekerDB")
+	cmd := fmt.Sprintf("CREATE DATABASE %s", "kiekerTest")
 	q := client.Query{
 		Command:  cmd,
-		Database: "TestKiekerDB",
+		Database: "kiekerTest",
 	}
 	_, err := clnt.Query(q)
 	if err != nil {
 		t.Errorf("Cannot create test DB for Kieker. %s", err)
 	}
-	cmd = fmt.Sprintf("CREATE DATABASE %s", "TestK8sDB")
+	cmd = fmt.Sprintf("CREATE DATABASE %s", "k8sTest")
 	q = client.Query{
 		Command:  cmd,
-		Database: "TestK8sDB",
+		Database: "k8sTest",
 	}
 	_, err = clnt.Query(q)
 	if err != nil {
@@ -132,19 +253,19 @@ func createTestDBs(t *testing.T, clnt client.Client) {
 }
 
 func dropTestDBs(t *testing.T, clnt client.Client) {
-	cmd := fmt.Sprintf("DROP DATABASE %s", "TestKiekerDB")
+	cmd := fmt.Sprintf("DROP DATABASE %s", "kiekerTest")
 	q := client.Query{
 		Command:  cmd,
-		Database: "TestKiekerDB",
+		Database: "kiekerTest",
 	}
 	_, err := clnt.Query(q)
 	if err != nil {
 		t.Errorf("Cannot drop test DB for kieker. %s", err)
 	}
-	cmd = fmt.Sprintf("DROP DATABASE %s", "TestK8sDB")
+	cmd = fmt.Sprintf("DROP DATABASE %s", "k8sTest")
 	q = client.Query{
 		Command:  cmd,
-		Database: "TestK8sDB",
+		Database: "k8sTest",
 	}
 	_, err = clnt.Query(q)
 	if err != nil {
