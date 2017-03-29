@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"gopkg.in/ory-am/dockertest.v3"
 
-	"github.com/teeratpitakrat/hora/rbridge"
+	"github.com/hora-prediction/hora/rbridge"
 )
 
 var epsilon = 1e-12
@@ -28,7 +28,7 @@ func TestMain(m *testing.M) {
 		}
 
 		// pulls an image, creates a container based on it and runs it
-		resource, err := pool.Run("teeratpitakrat/docker-r-hora", "latest", nil)
+		resource, err := pool.Run("hora/docker-r-hora", "latest", nil)
 		if err != nil {
 			log.Fatalf("Could not start resource: %s", err)
 		}

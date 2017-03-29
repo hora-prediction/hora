@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/teeratpitakrat/hora/adm"
-	"github.com/teeratpitakrat/hora/cfp"
-	"github.com/teeratpitakrat/hora/fpm"
+	"github.com/hora-prediction/hora/adm"
+	"github.com/hora-prediction/hora/cfp"
+	"github.com/hora-prediction/hora/fpm"
 
 	"github.com/influxdata/influxdb/client/v2"
 	"github.com/spf13/viper"

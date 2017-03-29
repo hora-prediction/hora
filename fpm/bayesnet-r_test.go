@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	//"github.com/teeratpitakrat/hora/adm"
-	//"github.com/teeratpitakrat/hora/cfp"
-	"github.com/teeratpitakrat/hora/rbridge"
+	//"github.com/hora-prediction/hora/adm"
+	//"github.com/hora-prediction/hora/cfp"
+	"github.com/hora-prediction/hora/rbridge"
 
 	"github.com/spf13/viper"
 	"gopkg.in/ory-am/dockertest.v3"
@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 		}
 
 		// pulls an image, creates a container based on it and runs it
-		resource, err := pool.Run("teeratpitakrat/docker-r-hora", "latest", nil)
+		resource, err := pool.Run("hora/docker-r-hora", "latest", nil)
 		if err != nil {
 			log.Fatalf("Could not start resource: %s", err)
 		}

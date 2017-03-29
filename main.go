@@ -5,11 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/teeratpitakrat/hora/adm"
-	"github.com/teeratpitakrat/hora/cfp"
-	"github.com/teeratpitakrat/hora/fpm"
-	"github.com/teeratpitakrat/hora/mondat"
-	"github.com/teeratpitakrat/hora/resultio"
+	"github.com/hora-prediction/hora/adm"
+	"github.com/hora-prediction/hora/cfp"
+	"github.com/hora-prediction/hora/fpm"
+	"github.com/hora-prediction/hora/mondat"
+	"github.com/hora-prediction/hora/resultio"
 
 	"github.com/spf13/viper"
 )

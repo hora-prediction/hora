@@ -3,7 +3,7 @@ package mondat
 import (
 	"time"
 
-	"github.com/teeratpitakrat/hora/adm"
+	"github.com/hora-prediction/hora/adm"
 )
 
 type TSPoint struct {

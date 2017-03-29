@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/teeratpitakrat/hora/adm"
-	"github.com/teeratpitakrat/hora/cfp"
-	"github.com/teeratpitakrat/hora/rbridge"
+	"github.com/hora-prediction/hora/adm"
+	"github.com/hora-prediction/hora/cfp"
+	"github.com/hora-prediction/hora/rbridge"
 
 	"github.com/senseyeio/roger"
 )
