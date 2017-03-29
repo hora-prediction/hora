@@ -35,21 +35,43 @@ spec:
         ports:
         - containerPort: 8080
         env:
+          - name: HORA_PREDICTION_LEADTIME
+            value: "10m"
+          - name: HORA_ADM_FILEWATCHER_ENABLED
+            value: "FALSE"
+          - name: HORA_ADM_RESTAPI_ENABLED
+            value: "TRUE"
           - name: HORA_CFP_RESPONSETIME_THRESHOLD
             value: "100ms"
           - name: HORA_CFP_RESPONSETIME_HISTORY
             value: "30m"
-          - name: HORA_PREDICTION_LEADTIME
-            value: "10m"
           - name: HORA_RSERVE_HOSTNAME
             value: "rserve"
           - name: HORA_RSERVE_PORT
             value: "6311"
-          - name: HORA_INFLUXDB_ADDR
-            value: "http://influxdb:8086"
-          - name: HORA_INFLUXDB_USERNAME
-            value: "root"
-          - name: HORA_INFLUXDB_PASSWORD
-            value: "root"
           - name: HORA_INFLUXDB_BATCH
             value: "FALSE"
+          - name: HORA_INFLUXDB_KIEKER_ADDR
+            value: "http://influxdb:8086"
+          - name: HORA_INFLUXDB_KIEKER_USERNAME
+            value: "root"
+          - name: HORA_INFLUXDB_KIEKER_PASSWORD
+            value: "root"
+          - name: HORA_INFLUXDB_KIEKER_DB
+            value: "kieker"
+          - name: HORA_INFLUXDB_K8S_ADDR
+            value: "http://monitoring-influxdb.kube-system:8086"
+          - name: HORA_INFLUXDB_K8S_USERNAME
+            value: "root"
+          - name: HORA_INFLUXDB_K8S_PASSWORD
+            value: "root"
+          - name: HORA_INFLUXDB_K8S_DB
+            value: "k8s"
+          - name: HORA_INFLUXDB_HORA_ADDR
+            value: "http://influxdb:8086"
+          - name: HORA_INFLUXDB_HORA_USERNAME
+            value: "root"
+          - name: HORA_INFLUXDB_HORA_PASSWORD
+            value: "root"
+          - name: HORA_INFLUXDB_HORA_DB
+            value: "hora"
