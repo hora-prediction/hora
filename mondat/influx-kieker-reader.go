@@ -81,13 +81,6 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 		return mondatCh
 	}
 	r.K8sDb.Clnt = k8sClnt
-	//if r.Batch {
-	//log.Print("Reading monitoring data in batch mode")
-	//go r.readBatch(clnt, mondatCh)
-	//} else {
-	//log.Print("Reading monitoring data in realtime mode")
-	//go r.readRealtime(clnt, mondatCh)
-	//}
 	go r.startReading(mondatCh)
 	return mondatCh
 }
