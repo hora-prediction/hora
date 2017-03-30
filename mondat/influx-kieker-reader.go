@@ -124,7 +124,7 @@ MainLoop:
 			case "responsetime":
 				aggregation := viper.GetString("cfp.responsetime.aggregation")
 				aggregationvalue := viper.GetString("cfp.responsetime.aggregationvalue")
-				cmd := fmt.Sprintf("SELECT %s(responseTime,%s) FROM OperationExecution WHERE \"hostname\"='%s' AND \"operationSignature\"='%s' AND time >= %s AND time < %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, depInfo.Caller.Name, strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10), strconv.FormatInt(curtime.UnixNano(), 10))
+				cmd = fmt.Sprintf("SELECT %s(responseTime,%s) FROM OperationExecution WHERE \"hostname\"='%s' AND \"operationSignature\"='%s' AND time >= %s AND time < %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, depInfo.Caller.Name, strconv.FormatInt(curtime.Add(-1*r.Interval).UnixNano(), 10), strconv.FormatInt(curtime.UnixNano(), 10))
 				q = client.Query{
 					Command:  cmd,
 					Database: r.KiekerDb.DbName,
@@ -133,7 +133,7 @@ MainLoop:
 			case "cpu":
 				aggregation := viper.GetString("cfp.cpu.aggregation")
 				aggregationvalue := viper.GetString("cfp.cpu.aggregationvalue")
-				cmd := fmt.Sprintf("SELECT %s(value,%s) FROM \"cpu/usage_rate\" WHERE \"pod_name\"='%s' AND time >= %s AND time < %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, strconv.FormatInt(curtime.UnixNano(), 10), strconv.FormatInt(curtime.Add(1*r.Interval).UnixNano(), 10))
+				cmd = fmt.Sprintf("SELECT %s(value,%s) FROM \"cpu/usage_rate\" WHERE \"pod_name\"='%s' AND time >= %s AND time < %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, strconv.FormatInt(curtime.UnixNano(), 10), strconv.FormatInt(curtime.Add(1*r.Interval).UnixNano(), 10))
 				q = client.Query{
 					Command:  cmd,
 					Database: r.K8sDb.DbName,
@@ -142,7 +142,7 @@ MainLoop:
 			case "memory":
 				aggregation := viper.GetString("cfp.memory.aggregation")
 				aggregationvalue := viper.GetString("cfp.memory.aggregationvalue")
-				cmd := fmt.Sprintf("SELECT %s(value,%s) FROM \"memory/usage\" WHERE \"pod_name\"='%s' AND time >= %s AND time < %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, strconv.FormatInt(curtime.UnixNano(), 10), strconv.FormatInt(curtime.Add(1*r.Interval).UnixNano(), 10))
+				cmd = fmt.Sprintf("SELECT %s(value,%s) FROM \"memory/usage\" WHERE \"pod_name\"='%s' AND time >= %s AND time < %s GROUP BY time(1m)", aggregation, aggregationvalue, depInfo.Caller.Hostname, strconv.FormatInt(curtime.UnixNano(), 10), strconv.FormatInt(curtime.Add(1*r.Interval).UnixNano(), 10))
 				q = client.Query{
 					Command:  cmd,
 					Database: r.K8sDb.DbName,
