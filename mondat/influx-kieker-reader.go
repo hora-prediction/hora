@@ -71,9 +71,9 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 	r.KiekerDb.Clnt = kiekerClnt
 
 	k8sClnt, err := client.NewHTTPClient(client.HTTPConfig{
-		Addr:     r.KiekerDb.Addr,
-		Username: r.KiekerDb.Username,
-		Password: r.KiekerDb.Password,
+		Addr:     r.K8sDb.Addr,
+		Username: r.K8sDb.Username,
+		Password: r.K8sDb.Password,
 	})
 	if err != nil {
 		log.Printf("influxdb-kieker-reader: cannot create new influxdb client for K8s DB. Terminating. %s", err)
