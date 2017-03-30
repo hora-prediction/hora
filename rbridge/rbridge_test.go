@@ -1,6 +1,7 @@
 package rbridge
 
 import (
+	"flag"
 	"log"
 	"os"
 	"testing"
@@ -11,8 +12,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	flag.Parse()
 	if testing.Short() {
-		// TODO: skip test in short mode
 		code := m.Run()
 		os.Exit(code)
 	} else {

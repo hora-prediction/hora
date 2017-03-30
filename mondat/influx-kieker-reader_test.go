@@ -1,6 +1,7 @@
 package mondat
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -15,8 +16,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	flag.Parse()
 	if testing.Short() {
-		// TODO: skip test in short mode
 		code := m.Run()
 		os.Exit(code)
 	} else {

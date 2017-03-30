@@ -1,6 +1,7 @@
 package cfp
 
 import (
+	"flag"
 	"log"
 	"math"
 	"os"
@@ -16,8 +17,8 @@ import (
 var epsilon = 1e-12
 
 func TestMain(m *testing.M) {
+	flag.Parse()
 	if testing.Short() {
-		// TODO: skip test in short mode
 		code := m.Run()
 		os.Exit(code)
 	} else {
