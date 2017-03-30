@@ -63,6 +63,9 @@ func (f *BayesNetR) createBayesNet() error {
 	cmd := "net <- model2network(\""
 	for callerUniqName, depInfo := range f.admodel {
 		cmd += "[" + callerUniqName
+		if len(depInfo.Dependencies) > 0 {
+			cmd += "|"
+		}
 		for _, dep := range depInfo.Dependencies {
 			cmd += dep.Callee.UniqName() + ":"
 		}
