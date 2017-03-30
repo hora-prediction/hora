@@ -36,6 +36,8 @@ func TestMain(m *testing.M) {
 
 		viper.Set("rserve.hostname", "localhost")
 		viper.Set("rserve.port", resource.GetPort("6311/tcp"))
+
+		log.Println("Waiting for docker container")
 		time.Sleep(2 * time.Second)
 
 		// exponential backoff-retry, because the application in the container might not be ready to accept connections yet

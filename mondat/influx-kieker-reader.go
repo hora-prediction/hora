@@ -64,7 +64,7 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 		Password: r.KiekerDb.Password,
 	})
 	if err != nil {
-		log.Printf("Error: cannot create new influxdb client for Kieker DB. Terminating. %s", err)
+		log.Printf("influxdb-kieker-reader: cannot create new influxdb client for Kieker DB. Terminating. %s", err)
 		close(mondatCh)
 		return mondatCh
 	}
@@ -76,7 +76,7 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 		Password: r.KiekerDb.Password,
 	})
 	if err != nil {
-		log.Printf("Error: cannot create new influxdb client for K8s DB. Terminating. %s", err)
+		log.Printf("influxdb-kieker-reader: cannot create new influxdb client for K8s DB. Terminating. %s", err)
 		close(mondatCh)
 		return mondatCh
 	}
@@ -157,15 +157,15 @@ MainLoop:
 				response, err = r.K8sDb.Clnt.Query(q)
 			}
 			if err != nil {
-				log.Printf("Error: cannot query data with cmd=%s. %s", cmd, err)
+				log.Printf("influxdb-kieker-reader: cannot query data with cmd=%s. %s", cmd, err)
 				break MainLoop
 			}
 			if response == nil {
-				log.Printf("Error: nil response from InfluxDB. Terminating reading.")
+				log.Printf("influxdb-kieker-reader: nil response from InfluxDB. Terminating reading.")
 				break MainLoop
 			}
 			if response.Error() != nil {
-				log.Printf("Error: bad response from InfluxDB. Terminating reading. %s", response.Error())
+				log.Printf("influxdb-kieker-reader: bad response from InfluxDB. Terminating reading. %s", response.Error())
 				break MainLoop
 			}
 			res := response.Results
@@ -177,7 +177,7 @@ MainLoop:
 			for _, row := range res[0].Series[0].Values {
 				t, err := time.Parse(time.RFC3339, row[0].(string))
 				if err != nil {
-					log.Printf("Error parsing result from InfluxDB. %s", err)
+					log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
 				}
 
 				if row[1] != nil {
