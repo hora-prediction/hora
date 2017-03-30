@@ -2,6 +2,7 @@ package adm
 
 import (
 	"encoding/json"
+	"log"
 	"strings"
 )
 
@@ -48,15 +49,56 @@ func (m *ADM) String() string {
 	return string(mjson)
 }
 
-func (m *ADM) AddDependency(caller, callee Component) {
+func (m *ADM) AddDependency(caller, callee *Component) {
+	// Skipping adding caller if it is nil (indicating that the callee is an entrypoint)
+	if caller != nil {
+		callerDepInfo, ok := (*m)[caller.UniqName()]
+		if !ok {
+			// Add caller and dependency to callee into ADM if it does not already exist
+			(*m)[caller.UniqName()] = &DependencyInfo{
+				Caller: *caller,
+				Dependencies: map[string]*Dependency{
+					callee.UniqName(): &Dependency{
+						Callee: *callee,
+						Weight: 0,
+						Called: 0,
+					},
+				},
+			}
+		} else {
+			_, ok := callerDepInfo.Dependencies[callee.UniqName()]
+			if !ok {
+				// Add dependency to callee if it does not already exist
+				callerDepInfo.Dependencies[callee.UniqName()] = &Dependency{
+					Callee: *callee,
+					Weight: 0,
+					Called: 0,
+				}
+			}
+		}
+	}
+
+	if callee == nil {
+		log.Print("Callee cannot be nil")
+		return
+	}
+	_, ok := (*m)[callee.UniqName()]
+	if !ok {
+		// Add callee and empty dependency into ADM if it does not already exist
+		(*m)[callee.UniqName()] = &DependencyInfo{
+			Caller:       *callee,
+			Dependencies: make(map[string]*Dependency),
+		}
+	}
 }
 
-func (m *ADM) IncrementCount(caller, callee Component) {
+func (m *ADM) IncrementCount(caller, callee *Component) {
 	if caller == callee {
 		return // Ignore recursion
 	}
+	m.AddDependency(caller, callee)
 	// a nil caller indicates that the callee is an entrypoint
-	if &caller != nil {
+	if caller != nil {
 		// Increment count of callee called by this caller
 		depInfo := (*m)[caller.UniqName()]
 		dep := depInfo.Dependencies[callee.UniqName()]

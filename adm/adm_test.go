@@ -74,7 +74,7 @@ func TestSmallADMIncrementCount(t *testing.T) {
 	depInfo := m[callerUniqName]
 	oldDepCount := depInfo.Dependencies[calleeUniqName].Called
 
-	m.IncrementCount(caller, callee)
+	m.IncrementCount(&caller, &callee)
 
 	// New counts
 	callee = m[calleeUniqName].Caller
@@ -104,9 +104,70 @@ func TestSmallADMWeight(t *testing.T) {
 		Called:   50}
 	weightAB := m.Weight(compA, compB)
 	if math.Abs(weightAB-0.5) > 1e-12 {
-		t.Error("Expected 0.5 but got", weightAB)
+		t.Errorf("Expected 0.5 but got %.2f", weightAB)
+	}
+}
+
+func TestSmallADMAddDependency(t *testing.T) {
+	m := CreateSmallADM(t)
+
+	compA := Component{
+		Name:     "random component 1",
+		Hostname: "random host 1",
+		Type:     "responsetime",
+		Called:   100}
+	compB := Component{
+		Name:     "random component 2",
+		Hostname: "random host 2",
+		Type:     "responsetime",
+		Called:   50}
+
+	m.AddDependency(&compA, &compB)
+
+	compADepInfo, ok := m[compA.UniqName()]
+	if !ok {
+		t.Errorf("Cannot find compA in ADM")
+	}
+	_, ok = compADepInfo.Dependencies[compB.UniqName()]
+	if !ok {
+		t.Errorf("Cannot find dependency from compA to compB in ADM")
+	}
+	_, ok = m[compB.UniqName()]
+	if !ok {
+		t.Errorf("Cannot find compB in ADM")
+	}
+}
+
+func TestSmallADMAddDependencyWithExistingCaller(t *testing.T) {
+	m := CreateSmallADM(t)
+
+	var caller Component
+	for _, c := range m {
+		caller = c.Caller
+		break
+	}
+	compB := Component{
+		Name:     "random component 2",
+		Hostname: "random host 2",
+		Type:     "responsetime",
+		Called:   50}
+
+	m.AddDependency(&caller, &compB)
+
+	callerDepInfo, ok := m[caller.UniqName()]
+	if !ok {
+		t.Errorf("Cannot find caller in ADM")
+	}
+	_, ok = callerDepInfo.Dependencies[compB.UniqName()]
+	if !ok {
+		t.Errorf("Cannot find dependency from compA to compB in ADM")
+	}
+	_, ok = m[compB.UniqName()]
+	if !ok {
+		t.Errorf("Cannot find compB in ADM")
 	}
 }
 
 func TestSmallADMIsValid(t *testing.T) {
+	// TODO
 }
