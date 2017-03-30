@@ -28,13 +28,13 @@ type BayesNetR struct {
 	lastPredTime  time.Time
 }
 
-func NewBayesNetR(m adm.ADM) (BayesNetR, <-chan Result, error) {
+func NewBayesNetR(m adm.ADM) (*BayesNetR, <-chan Result, error) {
 	var f BayesNetR
 
 	rSession, err := rbridge.GetRSession("fpm" + strconv.FormatInt(rand.Int63(), 10))
 	if err != nil {
 		log.Printf("Error: Cannot get R session. %s", err)
-		return f, f.fpmResultCh, err
+		return &f, f.fpmResultCh, err
 	}
 	f.rSession = rSession
 
@@ -42,7 +42,7 @@ func NewBayesNetR(m adm.ADM) (BayesNetR, <-chan Result, error) {
 	err = f.createBayesNet()
 	if err != nil {
 		log.Printf("Error creating BN. %s", err)
-		return f, f.fpmResultCh, err
+		return &f, f.fpmResultCh, err
 	}
 
 	f.admCh = make(chan adm.ADM, 1)
@@ -51,7 +51,7 @@ func NewBayesNetR(m adm.ADM) (BayesNetR, <-chan Result, error) {
 	f.fpmResultCh = make(chan Result, 10)
 
 	go f.start()
-	return f, f.fpmResultCh, nil
+	return &f, f.fpmResultCh, nil
 }
 
 func (f *BayesNetR) createBayesNet() error {

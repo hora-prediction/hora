@@ -80,7 +80,7 @@ func TestWriteCfpResult(t *testing.T) {
 	viper.AddConfigPath("../.")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		log.Print("Fatal error config file: %s \n", err)
+		log.Printf("Fatal error config file: %s \n", err)
 	}
 
 	writer, err := New(
@@ -92,8 +92,18 @@ func TestWriteCfpResult(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	a := adm.Component{"A", "host1", "responsetime", 0}
-	b := adm.Component{"B", "host2", "responsetime", 0}
+	a := adm.Component{
+		Name:     "A",
+		Hostname: "host1",
+		Type:     "responsetime",
+		Called:   0,
+	}
+	b := adm.Component{
+		Name:     "B",
+		Hostname: "host2",
+		Type:     "responsetime",
+		Called:   0,
+	}
 	resulta := cfp.Result{
 		Component: a,
 		Timestamp: time.Now(),
@@ -130,7 +140,7 @@ func TestWriteFpmResult(t *testing.T) {
 	viper.AddConfigPath("../.")
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {             // Handle errors reading the config file
-		log.Print("Fatal error config file: %s \n", err)
+		log.Printf("Fatal error config file: %s \n", err)
 	}
 
 	writer, err := New(
@@ -143,16 +153,26 @@ func TestWriteFpmResult(t *testing.T) {
 		t.Error(err)
 	}
 
-	a := adm.Component{"A", "host1", "responsetime", 0}
-	b := adm.Component{"B", "host2", "responsetime", 0}
+	a := adm.Component{
+		Name:     "A",
+		Hostname: "host1",
+		Type:     "responsetime",
+		Called:   0,
+	}
+	b := adm.Component{
+		Name:     "B",
+		Hostname: "host2",
+		Type:     "responsetime",
+		Called:   0,
+	}
 	failProbs := make(map[adm.Component]float64)
 	failProbs[a] = 0.2
 	failProbs[b] = 0.3
 
 	result := fpm.Result{
-		failProbs,
-		time.Now(),
-		time.Now().Add(10 * time.Minute),
+		FailProbs: failProbs,
+		Timestamp: time.Now(),
+		Predtime:  time.Now().Add(10 * time.Minute),
 	}
 	writer.WriteFpmResult(result)
 
