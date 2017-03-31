@@ -60,7 +60,7 @@ spec:
           - name: HORA_INFLUXDB_KIEKER_DB
             value: "kieker"
           - name: HORA_INFLUXDB_K8S_ADDR
-            value: "http://monitoring-influxdb.kube-system:8086"
+            value: "http://influxdb:8086"
           - name: HORA_INFLUXDB_K8S_USERNAME
             value: "root"
           - name: HORA_INFLUXDB_K8S_PASSWORD
