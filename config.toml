@@ -45,7 +45,7 @@ title = "Hora configuration"
 	    password = "root"
 	    db = "kieker"
     [influxdb.k8s]
-        addr = "http://monitoring-influxdb.kube-system:8086"
+        addr = "http://influxdb:8086"
 	    username = "root"
 	    password = "root"
 	    db = "kieker"
