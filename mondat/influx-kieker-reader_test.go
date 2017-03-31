@@ -346,7 +346,7 @@ func createTestDBs(t *testing.T, clnt client.Client) {
 	}
 	_, err := clnt.Query(q)
 	if err != nil {
-		t.Errorf("Cannot create test DB for Kieker. %s", err)
+		t.Fatalf("Cannot create test DB for Kieker. %s", err)
 	}
 	cmd = fmt.Sprintf("CREATE DATABASE %s", "k8sTest")
 	q = client.Query{
@@ -355,7 +355,7 @@ func createTestDBs(t *testing.T, clnt client.Client) {
 	}
 	_, err = clnt.Query(q)
 	if err != nil {
-		t.Errorf("Cannot create test DB for k8s. %s", err)
+		t.Fatalf("Cannot create test DB for k8s. %s", err)
 	}
 }
 
