@@ -44,7 +44,7 @@ func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, 
 }
 
 func (a *ArimaR) Insert(p mondat.TSPoint) {
-	if p.Component != a.component {
+	if p.Component.UniqName() != a.component.UniqName() {
 		log.Printf("arima-r: receiving data of another component. Expected %s but got %s. Ignoring data point", a.component.UniqName(), p.Component.UniqName())
 		return
 	}
