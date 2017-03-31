@@ -36,7 +36,7 @@ func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, 
 	a.leadtime = leadtime
 	session, err := rbridge.GetRSession(a.component.UniqName())
 	if err != nil {
-		log.Print("Error creating new ArimaR predictor: ", err)
+		log.Print("arima-r: error creating new ArimaR predictor: ", err)
 		return nil, err
 	}
 	a.rSession = session
@@ -45,7 +45,7 @@ func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, 
 
 func (a *ArimaR) Insert(p mondat.TSPoint) {
 	if p.Component != a.component {
-		log.Printf("Warning: receiving data of another component. Expected %s but got %s. Ignoring data point", a.component.UniqName(), p.Component.UniqName())
+		log.Printf("arima-r: receiving data of another component. Expected %s but got %s. Ignoring data point", a.component.UniqName(), p.Component.UniqName())
 		return
 	}
 	if a.buf.Value != nil {
@@ -53,7 +53,7 @@ func (a *ArimaR) Insert(p mondat.TSPoint) {
 		lastTimestamp := lastTSPoint.Timestamp
 		// Drop if received data is older than the latest one
 		if p.Timestamp.Equal(lastTimestamp) || p.Timestamp.Before(lastTimestamp) {
-			log.Printf("Warning: receiving data older than or as old as the latest one. Latest: %s, Received: %s. Ignoring data point", lastTimestamp, p.Timestamp)
+			log.Printf("arima-r: receiving data older than or as old as the latest one. Latest: %s, Received: %s. Ignoring data point", lastTimestamp, p.Timestamp)
 			return
 		}
 		// Fill missing values if there is a gap between latest point in the buffer and the one just received
@@ -98,7 +98,7 @@ func (a *ArimaR) Predict() (Result, error) {
 	cmd += "))"
 	_, err := a.rSession.Eval(cmd)
 	if err != nil {
-		log.Printf("Cannot evaluate R with cmd=%s\n%s", cmd, err)
+		log.Printf("arima-r: cannot evaluate R with cmd=%s\n%s", cmd, err)
 		return result, err
 	}
 
@@ -109,7 +109,7 @@ func (a *ArimaR) Predict() (Result, error) {
 	cmd += ")"
 	ret, err := a.rSession.Eval(cmd)
 	if err != nil {
-		log.Printf("Cannot evaluate R with cmd=%s\n%s", cmd, err)
+		log.Printf("arima-r: cannot evaluate R with cmd=%s\n%s", cmd, err)
 		return result, err
 	}
 	res := ret.(map[string]interface{})
