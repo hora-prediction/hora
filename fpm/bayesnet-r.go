@@ -1,6 +1,7 @@
 package fpm
 
 import (
+	"fmt"
 	"log"
 	"math"
 	"math/rand"
@@ -75,8 +76,7 @@ func (f *BayesNetR) createBayesNet() error {
 	cmd += "\")"
 	_, err := f.rSession.Eval(cmd)
 	if err != nil {
-		log.Printf("Error creating BN structure cmd=%s. %s ", cmd, err)
-		return err
+		panic(fmt.Sprintf("bayesnet-r: cannot create BayesNet structure cmd=%s. %s ", cmd, err))
 	}
 
 	// Create CPTs
@@ -135,8 +135,7 @@ func (f *BayesNetR) createBayesNet() error {
 		}
 		_, err := f.rSession.Eval(cmd)
 		if err != nil {
-			log.Printf("Error creating CPTs cmd=%s. %s ", cmd, err)
-			return err
+			panic(fmt.Sprintf("bayesnet-r: cannot create CPTs cmd=%s. %s ", cmd, err))
 		}
 	}
 
@@ -151,8 +150,7 @@ func (f *BayesNetR) createBayesNet() error {
 	cmd += "))"
 	_, err = f.rSession.Eval(cmd)
 	if err != nil {
-		log.Printf("Error creating BN cmd=%s. %s ", cmd, err)
-		return err
+		panic(fmt.Sprintf("bayesnet-r: cannot create BayesNet cmd=%s. %s ", cmd, err))
 	}
 	return nil
 }
