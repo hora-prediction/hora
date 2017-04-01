@@ -22,14 +22,14 @@ func New(addr, username, password, db string) (InfluxResultWriter, error) {
 		Password: password,
 	})
 	if err != nil {
-		log.Printf("Error creating new influxdb client. %s", err)
+		log.Printf("result-writer: cannot create new influxdb client. %s", err)
 		return influxResultWriter, err
 	}
 	influxResultWriter.influxClnt = clnt
 
 	err = influxResultWriter.createDB(db)
 	if err != nil {
-		log.Printf("Error creating DB. %s", err)
+		log.Printf("result-writer: cannot create DB. %s", err)
 		return influxResultWriter, err
 	}
 
@@ -58,7 +58,7 @@ func (w *InfluxResultWriter) WriteCfpResult(result cfp.Result) error {
 		Precision: "ns",
 	})
 	if err != nil {
-		log.Printf("Error creating batch point. %s", err)
+		log.Printf("result-writer: cannot create batch point. %s", err)
 		return err
 	}
 
@@ -74,14 +74,14 @@ func (w *InfluxResultWriter) WriteCfpResult(result cfp.Result) error {
 
 	pt, err := client.NewPoint("cfp", tags, fields, result.Predtime)
 	if err != nil {
-		log.Printf("Error creating point. %s", err)
+		log.Printf("result-writer: cannot create point. %s", err)
 		return err
 	}
 	bp.AddPoint(pt)
 
 	// Write the batch
 	if err := w.influxClnt.Write(bp); err != nil {
-		log.Printf("Error writing batch point. %s", err)
+		log.Printf("result-writer: cannot write batch point. %s", err)
 		return err
 	}
 	return nil
@@ -94,7 +94,7 @@ func (w *InfluxResultWriter) WriteFpmResult(result fpm.Result) error {
 		Precision: "ns",
 	})
 	if err != nil {
-		log.Printf("Error creating batch point. %s", err)
+		log.Printf("result-writer: cannot create batch point. %s", err)
 		return err
 	}
 
@@ -111,7 +111,7 @@ func (w *InfluxResultWriter) WriteFpmResult(result fpm.Result) error {
 
 		pt, err := client.NewPoint("fpm", tags, fields, result.Predtime)
 		if err != nil {
-			log.Printf("Error creating point. %s", err)
+			log.Printf("result-writer: cannot create point. %s", err)
 			return err
 		}
 		bp.AddPoint(pt)
@@ -119,7 +119,7 @@ func (w *InfluxResultWriter) WriteFpmResult(result fpm.Result) error {
 
 	// Write the batch
 	if err := w.influxClnt.Write(bp); err != nil {
-		log.Printf("Error writing batch point. %s", err)
+		log.Printf("result-writer: cannot write batch point. %s", err)
 		return err
 	}
 	return nil
