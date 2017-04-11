@@ -41,7 +41,6 @@ title = "Hora configuration"
     hostname = "rserve"
 	port = 6311
 [influxdb]
-	batch = false
     [influxdb.kieker]
         addr = "http://influxdb:8086"
 	    username = "root"
