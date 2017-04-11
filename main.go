@@ -7,6 +7,7 @@ import (
 
 	"github.com/hora-prediction/hora/adm"
 	"github.com/hora-prediction/hora/cfp"
+	"github.com/hora-prediction/hora/eval"
 	"github.com/hora-prediction/hora/fpm"
 	"github.com/hora-prediction/hora/mondat"
 	"github.com/hora-prediction/hora/resultio"
@@ -28,6 +29,8 @@ func main() {
 	viper.SetEnvPrefix("hora") // will be uppercased automatically
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	batchMode := viper.GetBool("prediction.batch")
 
 	// Read first ADM before continue
 	admController := adm.NewController()
@@ -68,9 +71,13 @@ func main() {
 			Password: viper.GetString("influxdb.k8s.password"),
 			DbName:   viper.GetString("influxdb.k8s.db"),
 		},
-		Batch:    false,
-		Interval: time.Minute,
+		Batch:     batchMode,
+		Interval:  time.Minute,
+		Starttime: viper.GetTime("prediction.starttime"),
+		Endtime:   viper.GetTime("prediction.endtime"),
 	}
+
+	evaluator := eval.New()
 
 	go func() {
 		for {
@@ -87,6 +94,7 @@ func main() {
 		for {
 			cfpResult := <-cfpResultCh
 			f.UpdateCfpResult(cfpResult)
+			evaluator.UpdateCfpResult(cfpResult)
 			resultWriter.WriteCfpResult(cfpResult)
 		}
 	}()
@@ -94,6 +102,7 @@ func main() {
 	go func() {
 		for {
 			fpmResult := <-fpmResultCh
+			evaluator.UpdateFpmResult(fpmResult)
 			resultWriter.WriteFpmResult(fpmResult)
 		}
 	}()
@@ -107,6 +116,10 @@ func main() {
 			break
 		}
 		cfpController.AddMonDat(monDat)
-		// TODO: send mondat to eval
+		evaluator.UpdateMondat(monDat)
+	}
+	if batchMode {
+		log.Println("Running evaluation")
+		evaluator.ComputeROC()
 	}
 }

@@ -4,6 +4,9 @@ title = "Hora configuration"
 	interval = "1m"
 	leadtime = "10m"
 	precision = "1ns"
+	batch = true
+	starttime = "Fri, 31 Mar 2017 13:10:00 GMT"
+	endtime = "Fri, 31 Mar 2017 16:25:00 GMT"
 [adm]
     [adm.filewatcher]
         enabled = false
@@ -54,3 +57,5 @@ title = "Hora configuration"
         username = "root"
 	    password = "root"
 	    db = "hora"
+[eval]
+	outdir = "/tmp/hora"
