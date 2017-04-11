@@ -50,7 +50,7 @@ title = "Hora configuration"
         addr = "http://influxdb:8086"
 	    username = "root"
 	    password = "root"
-	    db = "kieker"
+	    db = "k8s"
     [influxdb.hora]
 	    addr = "http://influxdb:8086"
         username = "root"
