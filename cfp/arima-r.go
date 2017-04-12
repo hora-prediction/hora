@@ -20,6 +20,7 @@ const fillValue float64 = 0.0
 type ArimaR struct {
 	component adm.Component
 	buf       *ring.Ring
+	bufcount  int
 	interval  time.Duration
 	threshold float64
 	leadtime  time.Duration
@@ -31,6 +32,7 @@ func NewArimaR(c adm.Component, interval time.Duration, leadtime time.Duration, 
 	a.component = c
 	buflen := int(history / interval)
 	a.buf = ring.New(buflen)
+	a.bufcount = 0
 	a.interval = interval
 	a.threshold = threshold
 	a.leadtime = leadtime
@@ -69,6 +71,7 @@ func (a *ArimaR) Insert(p mondat.TSPoint) {
 		a.buf = a.buf.Next()
 	}
 	a.buf.Value = p
+	a.bufcount++
 }
 
 func (a *ArimaR) TSPoints() mondat.TSPoints {
@@ -87,6 +90,19 @@ func (a *ArimaR) TSPoints() mondat.TSPoints {
 
 func (a *ArimaR) Predict() (Result, error) {
 	var result Result
+	if a.bufcount < a.buf.Len() {
+		result = Result{
+			a.component,
+			a.buf.Value.(mondat.TSPoint).Timestamp,
+			a.buf.Value.(mondat.TSPoint).Timestamp.Add(a.leadtime),
+			0,
+			0,
+			0,
+			0,
+			0,
+		}
+		return result, nil
+	}
 	// load data
 	cmd := "fit <- auto.arima(c("
 	for i, v := range a.TSPoints() {
