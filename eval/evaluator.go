@@ -88,6 +88,13 @@ func (e *Evaluator) UpdateMondat(tsPoint mondat.TSPoint) {
 
 	// Add label
 	switch tsPoint.Component.Type {
+	case "service":
+		threshold := viper.GetFloat64("cfp.service.threshold")
+		if tsPoint.Value > threshold {
+			componentResultPoint.Label = 1
+		} else {
+			componentResultPoint.Label = 0
+		}
 	case "responsetime":
 		threshold := float64(viper.GetDuration("cfp.responsetime.threshold") / viper.GetDuration("cfp.responsetime.unit"))
 		if tsPoint.Value > threshold {

@@ -103,6 +103,17 @@ func (c *CfpController) start() {
 							log.Print(err)
 						}
 						c.cfps[comp.UniqName()] = cfp
+					case "service":
+						history := viper.GetDuration("cfp.service.history")
+						threshold := viper.GetFloat64("cfp.service.threshold")
+						cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
+						if err != nil {
+							log.Printf("cfp: %s. %s", comp.UniqName(), err)
+						}
+						c.cfps[comp.UniqName()] = cfp
+					default:
+						log.Printf("cfp: unknown component type: %s. Skipping", comp.Type)
+						continue Loop
 					}
 				}
 				cfp.Insert(tsPoint)

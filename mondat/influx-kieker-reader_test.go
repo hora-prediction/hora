@@ -45,6 +45,11 @@ func TestMain(m *testing.M) {
 		viper.Set("influxdb.k8s.password", "root")
 		viper.Set("influxdb.k8s.db", "kieker")
 
+		viper.Set("influxdb.locust.addr", "http://localhost:"+influxDBPort)
+		viper.Set("influxdb.locust.username", "root")
+		viper.Set("influxdb.locust.password", "root")
+		viper.Set("influxdb.locust.db", "kieker")
+
 		log.Println("Waiting for docker container")
 		time.Sleep(2 * time.Second)
 
@@ -94,6 +99,12 @@ func TestReadBatchWithZeroStarttime(t *testing.T) {
 			Password: "root",
 			DbName:   "k8sTest",
 		},
+		LocustDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.locust.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "locustTest",
+		},
 		Batch:    true,
 		Endtime:  time.Now(),
 		Interval: time.Minute,
@@ -122,6 +133,12 @@ func TestReadBatchWithZeroEndtime(t *testing.T) {
 			Username: "root",
 			Password: "root",
 			DbName:   "k8sTest",
+		},
+		LocustDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.locust.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "locustTest",
 		},
 		Batch:     true,
 		Starttime: time.Now(),
@@ -165,6 +182,12 @@ func TestReadBatch(t *testing.T) {
 			Username: "root",
 			Password: "root",
 			DbName:   "k8sTest",
+		},
+		LocustDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.locust.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "locustTest",
 		},
 		Batch:     true,
 		Starttime: starttime,
@@ -271,6 +294,12 @@ func TestReadRealtime(t *testing.T) {
 			Username: "root",
 			Password: "root",
 			DbName:   "k8sTest",
+		},
+		LocustDb: InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.locust.addr"),
+			Username: "root",
+			Password: "root",
+			DbName:   "locustTest",
 		},
 		Batch:    false,
 		Interval: time.Minute,

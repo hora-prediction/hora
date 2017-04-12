@@ -19,6 +19,7 @@ type InfluxKiekerReader struct {
 	ArchdepmodMutex sync.Mutex
 	KiekerDb        InfluxDBConfig
 	K8sDb           InfluxDBConfig
+	LocustDb        InfluxDBConfig
 	Batch           bool
 	Starttime       time.Time
 	Endtime         time.Time
@@ -81,6 +82,19 @@ func (r *InfluxKiekerReader) Read() <-chan TSPoint {
 		return mondatCh
 	}
 	r.K8sDb.Clnt = k8sClnt
+
+	locustClnt, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr:     r.LocustDb.Addr,
+		Username: r.LocustDb.Username,
+		Password: r.LocustDb.Password,
+	})
+	if err != nil {
+		log.Printf("influxdb-kieker-reader: cannot create new influxdb client for Locust DB. Terminating. %s", err)
+		close(mondatCh)
+		return mondatCh
+	}
+	r.LocustDb.Clnt = locustClnt
+
 	go r.startReading(mondatCh)
 	return mondatCh
 }
@@ -130,6 +144,40 @@ MainLoop:
 					Database: r.KiekerDb.DbName,
 				}
 				response, err = r.KiekerDb.Clnt.Query(q)
+				if err != nil {
+					log.Printf("influxdb-kieker-reader: cannot query data with cmd=%s. %s", cmd, err)
+					break MainLoop
+				}
+				if response == nil {
+					log.Printf("influxdb-kieker-reader: nil response from InfluxDB. Terminating reading.")
+					break MainLoop
+				}
+				if response.Error() != nil {
+					log.Printf("influxdb-kieker-reader: bad response from InfluxDB. Terminating reading. %s", response.Error())
+					break MainLoop
+				}
+				res := response.Results
+
+				if len(res[0].Series) == 0 {
+					continue ComponentLoop // no data - try next component
+				}
+				// Parse time and response time
+				for _, row := range res[0].Series[0].Values {
+					t, err := time.Parse(time.RFC3339, row[0].(string))
+					if err != nil {
+						log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
+					}
+
+					if row[1] != nil {
+						val, _ := row[1].(json.Number).Float64()
+						point := TSPoint{
+							Component: depInfo.Caller,
+							Timestamp: t,
+							Value:     val,
+						}
+						mondatCh <- point
+					}
+				}
 			case "cpu":
 				aggregation := viper.GetString("cfp.cpu.aggregation")
 				aggregationvalue := viper.GetString("cfp.cpu.aggregationvalue")
@@ -139,6 +187,40 @@ MainLoop:
 					Database: r.K8sDb.DbName,
 				}
 				response, err = r.K8sDb.Clnt.Query(q)
+				if err != nil {
+					log.Printf("influxdb-kieker-reader: cannot query data with cmd=%s. %s", cmd, err)
+					break MainLoop
+				}
+				if response == nil {
+					log.Printf("influxdb-kieker-reader: nil response from InfluxDB. Terminating reading.")
+					break MainLoop
+				}
+				if response.Error() != nil {
+					log.Printf("influxdb-kieker-reader: bad response from InfluxDB. Terminating reading. %s", response.Error())
+					break MainLoop
+				}
+				res := response.Results
+
+				if len(res[0].Series) == 0 {
+					continue ComponentLoop // no data - try next component
+				}
+				// Parse time and response time
+				for _, row := range res[0].Series[0].Values {
+					t, err := time.Parse(time.RFC3339, row[0].(string))
+					if err != nil {
+						log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
+					}
+
+					if row[1] != nil {
+						val, _ := row[1].(json.Number).Float64()
+						point := TSPoint{
+							Component: depInfo.Caller,
+							Timestamp: t,
+							Value:     val,
+						}
+						mondatCh <- point
+					}
+				}
 			case "memory":
 				aggregation := viper.GetString("cfp.memory.aggregation")
 				aggregationvalue := viper.GetString("cfp.memory.aggregationvalue")
@@ -148,42 +230,126 @@ MainLoop:
 					Database: r.K8sDb.DbName,
 				}
 				response, err = r.K8sDb.Clnt.Query(q)
-			}
-			if err != nil {
-				log.Printf("influxdb-kieker-reader: cannot query data with cmd=%s. %s", cmd, err)
-				break MainLoop
-			}
-			if response == nil {
-				log.Printf("influxdb-kieker-reader: nil response from InfluxDB. Terminating reading.")
-				break MainLoop
-			}
-			if response.Error() != nil {
-				log.Printf("influxdb-kieker-reader: bad response from InfluxDB. Terminating reading. %s", response.Error())
-				break MainLoop
-			}
-			res := response.Results
-
-			if len(res[0].Series) == 0 {
-				continue ComponentLoop // no data - try next component
-			}
-			// Parse time and response time
-			for _, row := range res[0].Series[0].Values {
-				t, err := time.Parse(time.RFC3339, row[0].(string))
 				if err != nil {
-					log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
+					log.Printf("influxdb-kieker-reader: cannot query data with cmd=%s. %s", cmd, err)
+					break MainLoop
+				}
+				if response == nil {
+					log.Printf("influxdb-kieker-reader: nil response from InfluxDB. Terminating reading.")
+					break MainLoop
+				}
+				if response.Error() != nil {
+					log.Printf("influxdb-kieker-reader: bad response from InfluxDB. Terminating reading. %s", response.Error())
+					break MainLoop
+				}
+				res := response.Results
+
+				if len(res[0].Series) == 0 {
+					continue ComponentLoop // no data - try next component
+				}
+				// Parse time and response time
+				for _, row := range res[0].Series[0].Values {
+					t, err := time.Parse(time.RFC3339, row[0].(string))
+					if err != nil {
+						log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
+					}
+
+					if row[1] != nil {
+						val, _ := row[1].(json.Number).Float64()
+						point := TSPoint{
+							Component: depInfo.Caller,
+							Timestamp: t,
+							Value:     val,
+						}
+						mondatCh <- point
+					}
+				}
+			case "service":
+				// TODO: Write test
+				var numSuccess, numFailure, errorRate float64
+				var t time.Time
+
+				cmd = fmt.Sprintf("SELECT count(elapsed) FROM \"test_results\" WHERE \"status_code\"='200' AND time >= %s AND time < %s", strconv.FormatInt(curtime.UnixNano(), 10), strconv.FormatInt(curtime.Add(1*r.Interval).UnixNano(), 10))
+				q = client.Query{
+					Command:  cmd,
+					Database: r.LocustDb.DbName,
+				}
+				response, err = r.LocustDb.Clnt.Query(q)
+				if err != nil {
+					log.Printf("influxdb-kieker-reader: cannot query data with cmd=%s. %s", cmd, err)
+					break MainLoop
+				}
+				if response == nil {
+					log.Printf("influxdb-kieker-reader: nil response from InfluxDB. Terminating reading.")
+					break MainLoop
+				}
+				if response.Error() != nil {
+					log.Printf("influxdb-kieker-reader: bad response from InfluxDB. Terminating reading. %s", response.Error())
+					break MainLoop
+				}
+				res := response.Results
+
+				if len(res[0].Series) == 0 {
+					continue ComponentLoop // no data - try next component
+				}
+				// Parse time and response time
+				for _, row := range res[0].Series[0].Values {
+					t, err = time.Parse(time.RFC3339, row[0].(string))
+					if err != nil {
+						log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
+					}
+
+					if row[1] != nil {
+						numSuccess, _ = row[1].(json.Number).Float64()
+					}
 				}
 
-				if row[1] != nil {
-					val, _ := row[1].(json.Number).Float64()
-					point := TSPoint{
-						Component: depInfo.Caller,
-						Timestamp: t,
-						Value:     val,
-					}
-					mondatCh <- point
+				cmd = fmt.Sprintf("SELECT count(elapsed) FROM \"test_results\" WHERE \"status_code\"!='200' AND time >= %s AND time < %s", strconv.FormatInt(curtime.UnixNano(), 10), strconv.FormatInt(curtime.Add(1*r.Interval).UnixNano(), 10))
+				q = client.Query{
+					Command:  cmd,
+					Database: r.LocustDb.DbName,
 				}
-			}
-		}
+				response, err = r.LocustDb.Clnt.Query(q)
+				if err != nil {
+					log.Printf("influxdb-kieker-reader: cannot query data with cmd=%s. %s", cmd, err)
+					break MainLoop
+				}
+				if response == nil {
+					log.Printf("influxdb-kieker-reader: nil response from InfluxDB. Terminating reading.")
+					break MainLoop
+				}
+				if response.Error() != nil {
+					log.Printf("influxdb-kieker-reader: bad response from InfluxDB. Terminating reading. %s", response.Error())
+					break MainLoop
+				}
+				res = response.Results
+
+				if len(res[0].Series) == 0 {
+					// No failure
+					errorRate = 0
+				} else {
+					// Parse time and response time
+					for _, row := range res[0].Series[0].Values {
+						t, err = time.Parse(time.RFC3339, row[0].(string))
+						if err != nil {
+							log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
+						}
+
+						if row[1] != nil {
+							numFailure, _ = row[1].(json.Number).Float64()
+						}
+					}
+					errorRate = numFailure / numSuccess
+				}
+
+				point := TSPoint{
+					Component: depInfo.Caller,
+					Timestamp: t,
+					Value:     errorRate,
+				}
+				mondatCh <- point
+			} // switch
+		} // ComponentLoop
 		r.ArchdepmodMutex.Unlock()
 		if r.Batch {
 			curtime = curtime.Add(time.Minute)

@@ -71,6 +71,12 @@ func main() {
 			Password: viper.GetString("influxdb.k8s.password"),
 			DbName:   viper.GetString("influxdb.k8s.db"),
 		},
+		LocustDb: mondat.InfluxDBConfig{
+			Addr:     viper.GetString("influxdb.locust.addr"),
+			Username: viper.GetString("influxdb.locust.username"),
+			Password: viper.GetString("influxdb.locust.password"),
+			DbName:   viper.GetString("influxdb.locust.db"),
+		},
 		Batch:     batchMode,
 		Interval:  time.Minute,
 		Starttime: viper.GetTime("prediction.starttime"),

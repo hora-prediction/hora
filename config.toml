@@ -15,6 +15,10 @@ title = "Hora configuration"
         enabled = true
 		port = "8080"
 [cfp]
+    [cfp.service]
+	    threshold = 0.01
+		predictor = "arima"
+        history = "20m"
     [cfp.responsetime]
 	    unit = "1ns"
 	    threshold = "100ms"
@@ -51,6 +55,11 @@ title = "Hora configuration"
 	    username = "root"
 	    password = "root"
 	    db = "k8s"
+    [influxdb.locust]
+        addr = "http://localhost:8086"
+	    username = "root"
+	    password = "root"
+	    db = "locust"
     [influxdb.hora]
 	    addr = "http://influxdb:8086"
         username = "root"
