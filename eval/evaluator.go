@@ -141,6 +141,7 @@ func (e *Evaluator) UpdateFpmResult(fpmResult fpm.Result) {
 }
 
 func (e *Evaluator) ComputeROC() error {
+	// TODO: write test
 	outdir := viper.GetString("eval.outdir")
 	outdir += "-" + time.Now().Format("2006-01-02T15:04:05Z07:00")
 	err := os.Mkdir(outdir, 0755)
@@ -162,8 +163,24 @@ func (e *Evaluator) ComputeROC() error {
 		componentLabels := make([]int, length, length)
 		componentCfpProbs := make([]float64, length, length)
 		componentFpmProbs := make([]float64, length, length)
+
+		hasCaseObservation := false
+		for _, point := range timestamps {
+			if point.Label == 1 {
+				hasCaseObservation = true
+				break
+			}
+		}
+		if !hasCaseObservation {
+			log.Printf("evaluator: no case observation for %s. Skipping.", component)
+			continue
+		}
+
 		index := 0
 		for _, point := range timestamps {
+			if point.TSPoint.Timestamp.IsZero() {
+				continue
+			}
 			componentLabels[index] = point.Label
 			componentCfpProbs[index] = point.CfpFailProb
 			componentFpmProbs[index] = point.FpmFailProb
@@ -174,16 +191,8 @@ func (e *Evaluator) ComputeROC() error {
 			allComponentFpmProbs = append(allComponentFpmProbs, point.FpmFailProb)
 		}
 		cmd := `componentLabels <- c(`
-		hasCaseObservation := false
 		for _, label := range componentLabels {
-			if label == 1 {
-				hasCaseObservation = true
-			}
 			cmd += strconv.Itoa(label) + ","
-		}
-		if !hasCaseObservation {
-			log.Printf("evaluator: no case observation for %s. Skipping.", component)
-			continue
 		}
 		cmd = strings.TrimSuffix(cmd, ",")
 		cmd += `);`
@@ -222,7 +231,8 @@ func (e *Evaluator) ComputeROC() error {
 		ret, err := rSession.Eval(cmd)
 		if err != nil {
 			log.Printf("evaluator: cannot evaluate R with cmd=%s\n%s", cmd, err)
-			return err
+			//return err
+			continue
 		}
 		plotBase64 := ret.(string)
 		plotSvg, err := base64.StdEncoding.DecodeString(plotBase64)
@@ -241,9 +251,18 @@ func (e *Evaluator) ComputeROC() error {
 		}
 		// TODO: export metrics to text file
 	}
+
 	cmd := `allComponentLabels <- c(`
+	hasCaseObservation := false
 	for _, label := range allComponentLabels {
 		cmd += strconv.Itoa(label) + ","
+		if label == 1 {
+			hasCaseObservation = true
+		}
+	}
+	if !hasCaseObservation {
+		log.Println("evaluator: no case observation for all components. Skipping.")
+		return nil
 	}
 	cmd = strings.TrimSuffix(cmd, ",")
 	cmd += `);`
