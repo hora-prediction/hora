@@ -84,7 +84,7 @@ func (c *CfpController) start() {
 						threshold := float64(viper.GetDuration("cfp.responsetime.threshold") / viper.GetDuration("cfp.responsetime.unit"))
 						cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
 						if err != nil {
-							log.Print(err)
+							log.Printf("cfp: %s. %s", comp.UniqName(), err)
 						}
 						c.cfps[comp.UniqName()] = cfp
 					case "cpu":
@@ -92,7 +92,7 @@ func (c *CfpController) start() {
 						threshold := viper.GetFloat64("cfp.cpu.threshold")
 						cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
 						if err != nil {
-							log.Print(err)
+							log.Printf("cfp: %s. %s", comp.UniqName(), err)
 						}
 						c.cfps[comp.UniqName()] = cfp
 					case "memory":
@@ -100,7 +100,7 @@ func (c *CfpController) start() {
 						threshold := viper.GetFloat64("cfp.memory.threshold")
 						cfp, err = NewArimaR(comp, interval, leadtime, history, threshold)
 						if err != nil {
-							log.Print(err)
+							log.Printf("cfp: %s. %s", comp.UniqName(), err)
 						}
 						c.cfps[comp.UniqName()] = cfp
 					case "service":
@@ -119,7 +119,7 @@ func (c *CfpController) start() {
 				cfp.Insert(tsPoint)
 				res, err := cfp.Predict()
 				if err != nil {
-					log.Print(err)
+					log.Printf("cfp: %s. %s", comp.UniqName(), err)
 				}
 				c.cfpResultCh <- res
 			case model, _ := <-c.admCh:
