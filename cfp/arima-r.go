@@ -89,18 +89,17 @@ func (a *ArimaR) TSPoints() mondat.TSPoints {
 }
 
 func (a *ArimaR) Predict() (Result, error) {
-	var result Result
+	result := Result{
+		a.component,
+		a.buf.Value.(mondat.TSPoint).Timestamp,
+		a.buf.Value.(mondat.TSPoint).Timestamp.Add(a.leadtime),
+		0,
+		0,
+		0,
+		0,
+		0,
+	}
 	if a.bufcount < a.buf.Len() {
-		result = Result{
-			a.component,
-			a.buf.Value.(mondat.TSPoint).Timestamp,
-			a.buf.Value.(mondat.TSPoint).Timestamp.Add(a.leadtime),
-			0,
-			0,
-			0,
-			0,
-			0,
-		}
 		return result, nil
 	}
 	// load data
