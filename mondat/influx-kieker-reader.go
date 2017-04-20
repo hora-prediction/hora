@@ -267,7 +267,7 @@ MainLoop:
 			case "service":
 				// TODO: Write test
 				var numSuccess, numFailure, errorRate float64
-				var t time.Time
+				//var t time.Time
 
 				cmd = fmt.Sprintf("SELECT count(elapsed) FROM \"test_results\" WHERE \"status_code\"='200' AND time >= %s AND time < %s", strconv.FormatInt(curtime.UnixNano(), 10), strconv.FormatInt(curtime.Add(1*r.Interval).UnixNano(), 10))
 				q = client.Query{
@@ -290,17 +290,19 @@ MainLoop:
 				res := response.Results
 
 				if len(res[0].Series) == 0 {
-					continue ComponentLoop // no data - try next component
-				}
-				// Parse time and response time
-				for _, row := range res[0].Series[0].Values {
-					t, err = time.Parse(time.RFC3339, row[0].(string))
-					if err != nil {
-						log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
-					}
+					//continue ComponentLoop // no data - try next component
+					numSuccess = 0
+				} else {
+					// Parse time and response time
+					for _, row := range res[0].Series[0].Values {
+						//t, err = time.Parse(time.RFC3339, row[0].(string))
+						if err != nil {
+							log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
+						}
 
-					if row[1] != nil {
-						numSuccess, _ = row[1].(json.Number).Float64()
+						if row[1] != nil {
+							numSuccess, _ = row[1].(json.Number).Float64()
+						}
 					}
 				}
 
@@ -330,7 +332,7 @@ MainLoop:
 				} else {
 					// Parse time and response time
 					for _, row := range res[0].Series[0].Values {
-						t, err = time.Parse(time.RFC3339, row[0].(string))
+						//t, err = time.Parse(time.RFC3339, row[0].(string))
 						if err != nil {
 							log.Printf("influxdb-kieker-reader: cannot parse result from InfluxDB. %s", err)
 						}
@@ -339,12 +341,16 @@ MainLoop:
 							numFailure, _ = row[1].(json.Number).Float64()
 						}
 					}
-					errorRate = numFailure / numSuccess
+					if numFailure > 0 && numSuccess == 0 {
+						errorRate = 1.0
+					} else {
+						errorRate = numFailure / numSuccess
+					}
 				}
 
 				point := TSPoint{
 					Component: depInfo.Caller,
-					Timestamp: t,
+					Timestamp: curtime,
 					Value:     errorRate,
 				}
 				mondatCh <- point
