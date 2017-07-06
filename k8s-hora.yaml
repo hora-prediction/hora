@@ -35,6 +35,8 @@ spec:
         ports:
         - containerPort: 8080
         env:
+          - name: HORA_PREDICTION_BATCH
+            value: "FALSE"
           - name: HORA_PREDICTION_LEADTIME
             value: "10m"
           - name: HORA_ADM_FILEWATCHER_ENABLED
@@ -49,8 +51,6 @@ spec:
             value: "rserve"
           - name: HORA_RSERVE_PORT
             value: "6311"
-          - name: HORA_INFLUXDB_BATCH
-            value: "FALSE"
           - name: HORA_INFLUXDB_KIEKER_ADDR
             value: "http://influxdb:8086"
           - name: HORA_INFLUXDB_KIEKER_USERNAME
